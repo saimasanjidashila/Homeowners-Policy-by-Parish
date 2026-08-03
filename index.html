@@ -254,16 +254,23 @@
     </div>
 
     <div class="card kpi-card">
-      <div class="kpi-title">Policies with Wind Inclusion</div>
+      <div class="kpi-title">Total Policy In Force with Wind Inclusion</div>
       <div id="kpiWindPolicies" class="kpi-value">0</div>
     </div>
   </section>
 
   <section class="chart-grid">
+    <!-- Row 1: Policy comparison -->
     <div id="policiesChart" class="card chart-card"></div>
-    <div id="exposureChart" class="card chart-card"></div>
     <div id="windChart" class="card chart-card"></div>
+
+    <!-- Row 2: Exposure comparison -->
+    <div id="exposureChart" class="card chart-card"></div>
+    <div id="exposureExcludedChart" class="card chart-card"></div>
+
+    <!-- Row 3: Premium comparison -->
     <div id="premiumChart" class="card chart-card"></div>
+    <div id="premiumExcludedChart" class="card chart-card"></div>
   </section>
 
   <section class="card table-card">
@@ -287,7 +294,7 @@
     </table>
   </section>
 
-  
+
 
   <script>
     "use strict";
@@ -320,8 +327,10 @@
       updateKpis(data);
       renderPoliciesChart(parish, data);
       renderExposureChart(parish, data);
+      renderExposureExcludedChart(parish, data);
       renderWindChart(parish, data);
       renderPremiumChart(parish, data);
+      renderPremiumExcludedChart(parish, data);
       renderDetailsTable(parish, data);
     }
 
@@ -431,6 +440,52 @@
       );
     }
 
+
+    function renderExposureExcludedChart(parish, data) {
+      const rows = data.company.map((company, index) => ({
+        company,
+        value: data.exposure_ex[index]
+      })).sort((a, b) => a.value - b.value);
+
+      Plotly.react(
+        "exposureExcludedChart",
+        [{
+          type: "bar",
+          orientation: "h",
+          y: rows.map(row => row.company),
+          x: rows.map(row => row.value),
+          text: rows.map(row => formatCompactCurrency(row.value)),
+          textposition: "outside",
+          cliponaxis: false,
+          hovertemplate:
+            "<b>%{y}</b><br>" +
+            "Exposure with Wind Exclusion: $%{x:,.0f}<extra></extra>"
+        }],
+        {
+          title: {
+            text: `Exposure with Wind Exclusion<br><sup>${parish}</sup>`,
+            x: 0.02,
+            xanchor: "left"
+          },
+          margin: { l: 270, r: 70, t: 75, b: 55 },
+          xaxis: {
+            title: "Exposure",
+            tickprefix: "$",
+            tickformat: ".2s",
+            rangemode: "tozero"
+          },
+          yaxis: { automargin: true },
+          showlegend: false,
+          paper_bgcolor: "#ffffff",
+          plot_bgcolor: "#ffffff"
+        },
+        {
+          responsive: true,
+          displaylogo: false
+        }
+      );
+    }
+
     function renderWindChart(parish, data) {
       Plotly.react(
         "windChart",
@@ -510,6 +565,52 @@
         {
           title: {
             text: `Direct Written Premium with Wind Inclusion<br><sup>${parish}</sup>`,
+            x: 0.02,
+            xanchor: "left"
+          },
+          margin: { l: 270, r: 70, t: 75, b: 55 },
+          xaxis: {
+            title: "Direct Written Premium",
+            tickprefix: "$",
+            tickformat: ".2s",
+            rangemode: "tozero"
+          },
+          yaxis: { automargin: true },
+          showlegend: false,
+          paper_bgcolor: "#ffffff",
+          plot_bgcolor: "#ffffff"
+        },
+        {
+          responsive: true,
+          displaylogo: false
+        }
+      );
+    }
+
+
+    function renderPremiumExcludedChart(parish, data) {
+      const rows = data.company.map((company, index) => ({
+        company,
+        value: data.premium_ex[index]
+      })).sort((a, b) => a.value - b.value);
+
+      Plotly.react(
+        "premiumExcludedChart",
+        [{
+          type: "bar",
+          orientation: "h",
+          y: rows.map(row => row.company),
+          x: rows.map(row => row.value),
+          text: rows.map(row => formatCompactCurrency(row.value)),
+          textposition: "outside",
+          cliponaxis: false,
+          hovertemplate:
+            "<b>%{y}</b><br>" +
+            "Premium with Wind Exclusion: $%{x:,.0f}<extra></extra>"
+        }],
+        {
+          title: {
+            text: `Direct Written Premium with Wind Exclusion<br><sup>${parish}</sup>`,
             x: 0.02,
             xanchor: "left"
           },
