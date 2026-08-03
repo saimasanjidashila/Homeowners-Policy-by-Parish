@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Parish Insurance Market Dashboard</title>
+
+  <!-- Internet connection is required to load Plotly from this CDN. -->
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+
+  <style>
+    :root {
+      --navy: #0b4f71;
+      --navy-dark: #07384f;
+      --background: #f4f7fb;
+      --card: #ffffff;
+      --border: #dce4ed;
+      --text: #172033;
+      --muted: #66758a;
+      --shadow: 0 2px 10px rgba(28, 50, 75, 0.09);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--background);
+      color: var(--text);
+    }
+
+    .header {
+      padding: 24px 30px;
+      color: white;
+      background: linear-gradient(135deg, var(--navy), var(--navy-dark));
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    .header p {
+      margin: 7px 0 0;
+      line-height: 1.45;
+      opacity: 0.92;
+    }
+
+    .controls {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 18px;
+      padding: 20px 30px 12px;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .control-group label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    select {
+      min-width: 290px;
+      padding: 10px 12px;
+      border: 1px solid #b8c4d3;
+      border-radius: 7px;
+      background: white;
+      font-size: 15px;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(190px, 1fr));
+      gap: 14px;
+      padding: 8px 30px 18px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      box-shadow: var(--shadow);
+    }
+
+    .kpi-card {
+      padding: 17px 18px;
+    }
+
+    .kpi-title {
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .kpi-value {
+      color: var(--navy);
+      font-size: 26px;
+      font-weight: 700;
+    }
+
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      padding: 0 30px 18px;
+    }
+
+    .chart-card {
+      min-height: 450px;
+      padding: 8px;
+    }
+
+    .table-card {
+      margin: 0 30px 30px;
+      padding: 16px;
+      overflow-x: auto;
+    }
+
+    .table-card h2 {
+      margin: 0 0 13px;
+      color: var(--navy);
+      font-size: 19px;
+    }
+
+    table {
+      width: 100%;
+      min-width: 1450px;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      padding: 10px 9px;
+      background: var(--navy);
+      color: white;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    thead th:first-child,
+    tbody td:first-child {
+      text-align: left;
+    }
+
+    tbody td {
+      padding: 9px;
+      border-bottom: 1px solid #e5ebf1;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    tbody tr:hover {
+      background: #eaf4f9;
+    }
+
+    .rank {
+      display: inline-block;
+      min-width: 24px;
+      color: var(--navy);
+      font-weight: 700;
+    }
+
+    .footer-note {
+      padding: 0 30px 24px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 1000px) {
+      .kpi-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .chart-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .header,
+      .controls,
+      .kpi-grid,
+      .chart-grid,
+      .footer-note {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .control-group,
+      select {
+        width: 100%;
+        min-width: 100%;
+      }
+
+      .table-card {
+        margin-left: 16px;
+        margin-right: 16px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="header">
+    <h1>Parish Insurance Market Dashboard</h1>
+    <p>
+      Select a parish to view the top 11 companies ranked by
+      <strong>Total Policies In-Force</strong>.
+    </p>
+  </header>
+
+  <section class="controls">
+    <div class="control-group">
+      <label for="parishSelect">Select parish</label>
+      <select id="parishSelect"></select>
+    </div>
+  </section>
+
+  <section class="kpi-grid">
+    <div class="card kpi-card">
+      <div class="kpi-title">Top 11 Total Policies In-Force</div>
+      <div id="kpiPolicies" class="kpi-value">0</div>
+    </div>
+
+    <div class="card kpi-card">
+      <div class="kpi-title">Exposure with Wind Inclusion</div>
+      <div id="kpiExposure" class="kpi-value">$0</div>
+    </div>
+
+    <div class="card kpi-card">
+      <div class="kpi-title">Premium with Wind Inclusion</div>
+      <div id="kpiPremium" class="kpi-value">$0</div>
+    </div>
+
+    <div class="card kpi-card">
+      <div class="kpi-title">Policies with Wind Inclusion</div>
+      <div id="kpiWindPolicies" class="kpi-value">0</div>
+    </div>
+  </section>
+
+  <section class="chart-grid">
+    <div id="policiesChart" class="card chart-card"></div>
+    <div id="exposureChart" class="card chart-card"></div>
+    <div id="windChart" class="card chart-card"></div>
+    <div id="premiumChart" class="card chart-card"></div>
+  </section>
+
+  <section class="card table-card">
+    <h2 id="tableTitle">Top 11 Company Details</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Company</th>
+          <th>Total Policies In-Force</th>
+          <th>Policies with Wind Inclusion</th>
+          <th>Policies with Wind Exclusion</th>
+          <th>Exposure with Wind Inclusion</th>
+          <th>Exposure with Wind Exclusion</th>
+          <th>Premium with Wind Inclusion</th>
+          <th>Premium with Wind Exclusion</th>
+          <th>Average Wind-Included Exposure per Policy</th>
+        </tr>
+      </thead>
+      <tbody id="detailsBody"></tbody>
+    </table>
+  </section>
+
+  <div class="footer-note">
+    The top 11 companies are ranked using <strong>Total Policies In-Force</strong>.
+    Market-share percentages are not calculated or displayed.
+  </div>
+
+  <script>
+    "use strict";
+
+    /*
+      The data below is embedded directly in this HTML file.
+      No Excel upload or file-selection option is required.
+    */
+    const parishData = {"Acadia Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","ALLSTATE INSURANCE COMPANY","Progressive Property Insurance Company","Auros Reciprocal Insurance Exchange","Cajun Underwriters Reciprocal Exchange (CURE)","Gulf States Insurance Company","Allied Trust Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[5646,3967,1798,1468,575,531,421,204,102,84,42],"wind_in":[5643,1970,966,1468,575,528,421,204,101,84,42],"wind_ex":[3,16,832,0,0,3,0,0,1,0,0],"exposure_in":[3861624083.0,3705739200.0,667579506.0,904859950.0,152175502.0,317102110.0,241351880.0,101846569.0,45577187.0,38.0,16947100.0],"exposure_ex":[10777005.0,26424800.0,574646669.0,0.0,0.0,1816200.0,0.0,0.0,300600.0,0.0,0.0],"premium_in":[17301274.0,12705858.0,5321276.0,4537336.0,1569817.0,2217786.0,1211628.0,582906.0,380046.0,145304.0,205454.0],"premium_ex":[4187.0,33048.0,583980.0,0.0,0.0,2658.0,0.0,0.0,807.0,0.0,0.0],"avg_exposure":[683957.51,934141.47,371290.05,616389.61,264653.05,597179.11,573282.38,499247.89,446835.17,0.45,403502.38]},"Allen Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","Cajun Underwriters Reciprocal Exchange (CURE)","Auros Reciprocal Insurance Exchange","Progressive Property Insurance Company","Allied Trust Insurance Company","Gulf States Insurance Company","ALLSTATE INSURANCE COMPANY","Louisiana Citizens Property Insurance Corporation"],"policies":[2419,997,641,189,87,76,39,14,14,12,5],"wind_in":[2419,490,639,189,87,76,39,14,13,12,5],"wind_ex":[0,0,2,0,0,0,0,0,1,0,0],"exposure_in":[1454283531.0,904912900.0,408794810.0,104822820.0,45550463.0,41335850.0,29053580.0,7.0,5999628.0,2238006.0,1612100.0],"exposure_ex":[0.0,0.0,976280.0,0.0,0.0,0.0,0.0,0.0,337744.0,0.0,0.0],"premium_in":[5895002.0,2674996.0,2918176.0,509255.0,237621.0,211306.0,176184.0,21333.0,43344.0,43817.0,18356.0],"premium_ex":[0.0,0.0,2069.0,0.0,0.0,0.0,0.0,0.0,1171.0,0.0,0.0],"avg_exposure":[601192.03,907635.81,637745.41,554618.1,523568.54,543892.76,744963.59,0.5,428544.86,186500.5,322420.0]},"Ascension Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","Progressive Property Insurance Company","SureChoice Underwriters Reciprocal Exchange","Cajun Underwriters Reciprocal Exchange (CURE)","LOUISIANA FARM BUREAU INSURANCE COMPANY","Auros Reciprocal Insurance Exchange","Allied Trust Insurance Company","ALLSTATE INSURANCE COMPANY","Gulf States Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[17951,10619,4506,3552,3385,2510,1920,1453,740,533,108],"wind_in":[17951,5367,4500,3552,3385,2393,1920,1453,740,529,108],"wind_ex":[0,13,6,0,0,117,0,0,0,4,0],"exposure_in":[15426208233.0,10435513800.0,3064152512.0,2344022460.0,2030569855.0,2034470682.0,1222878950.0,703.0,219968993.0,270744237.0,60001500.0],"exposure_ex":[0.0,16691400.0,3652680.0,0.0,0.0,97347572.0,0.0,0.0,0.0,2030849.0,0.0],"premium_in":[49851976.0,35136471.0,17440178.0,10601272.0,8983682.0,12163779.0,5657666.0,2499203.0,2347242.0,1786188.0,568329.0],"premium_ex":[0.0,21967.0,8541.0,0.0,0.0,97079.0,0.0,0.0,0.0,4845.0,0.0],"avg_exposure":[859350.91,982720.95,680016.09,659916.23,599872.93,810546.09,636916.12,0.48,297255.4,507962.92,555569.44]},"Assumption Parish":{"company":["ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","STATE FARM FIRE AND CASUALTY COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","ALLSTATE INSURANCE COMPANY","Auros Reciprocal Insurance Exchange","Cajun Underwriters Reciprocal Exchange (CURE)","Progressive Property Insurance Company","Allied Trust Insurance Company","Gulf States Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[1603,996,746,647,255,213,163,158,105,85,34],"wind_in":[774,975,282,647,254,213,163,158,105,85,34],"wind_ex":[22,21,464,0,1,0,0,0,0,0,0],"exposure_in":[1370858400.0,651554115.0,225236240.0,424673580.0,69097535.0,136192530.0,86512463.0,115060740.0,57.0,37926884.0,10855900.0],"exposure_ex":[25133100.0,13395770.0,376524197.0,0.0,261000.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[6336240.0,3099491.0,1943844.0,2490781.0,970274.0,784732.0,558573.0,958406.0,227622.0,396414.0,211770.0],"premium_ex":[28118.0,17461.0,359504.0,0.0,4528.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[855183.03,654170.8,301925.25,656373.38,270970.73,639401.55,530751.31,728232.53,0.54,446198.64,319291.18]},"Avoyelles Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","Cajun Underwriters Reciprocal Exchange (CURE)","Auros Reciprocal Insurance Exchange","Progressive Property Insurance Company","ALLSTATE INSURANCE COMPANY","Allied Trust Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[4459,3305,1274,215,118,92,52,30,22,7],"wind_in":[4459,3301,624,215,118,92,52,30,22,7],"wind_ex":[0,4,5,0,0,0,0,0,0,0],"exposure_in":[2694276680.0,2405697536.0,962352300.0,122511180.0,59336663.0,47178730.0,31643240.0,6605616.0,10.0,1675700.0],"exposure_ex":[0.0,3096935.0,7000200.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[10264434.0,8724187.0,3149888.0,495700.0,309639.0,205387.0,207034.0,78294.0,29361.0,19554.0],"premium_ex":[0.0,3997.0,6013.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[604233.39,727896.38,755378.57,569819.44,502853.08,512812.28,608523.85,220187.2,0.45,239385.71]},"Beauregard Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","Cajun Underwriters Reciprocal Exchange (CURE)","ALLSTATE INSURANCE COMPANY","Progressive Property Insurance Company","Auros Reciprocal Insurance Exchange","Allied Trust Insurance Company","Gulf States Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[4941,2687,668,349,207,204,178,130,74,15,12],"wind_in":[4941,1305,652,349,207,204,177,130,74,15,12],"wind_ex":[0,1,16,0,0,0,1,0,0,0,0],"exposure_in":[3506442882.0,2849295300.0,535897248.0,220090820.0,118265345.0,51086112.0,122374530.0,76152690.0,36.0,8670641.0,6145500.0],"exposure_ex":[0.0,2000000.0,13933641.0,0.0,0.0,0.0,664200.0,0.0,0.0,0.0,0.0],"premium_in":[12202057.0,6918110.0,3176608.0,928486.0,567190.0,595007.0,722455.0,314266.0,125037.0,43864.0,47586.0],"premium_ex":[0.0,5533.0,25561.0,0.0,0.0,0.0,880.0,0.0,0.0,0.0,0.0],"avg_exposure":[709662.6,1060400.19,802241.39,630632.72,571330.17,250422.12,687497.36,585789.92,0.49,578042.73,512125.0]},"Bienville Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","ALLSTATE INSURANCE COMPANY","Progressive Property Insurance Company","SureChoice Underwriters Reciprocal Exchange","Allied Trust Insurance Company","Cajun Underwriters Reciprocal Exchange (CURE)","Auros Reciprocal Insurance Exchange","Louisiana Citizens Property Insurance Corporation"],"policies":[1949,323,308,54,39,26,11,8,6,3],"wind_in":[1949,153,302,54,39,26,11,8,6,3],"wind_ex":[0,0,6,0,0,0,0,0,0,0],"exposure_in":[1164618583.0,261037300.0,227910152.0,13794028.0,29001080.0,16790980.0,5.0,4733200.0,4158090.0,1193400.0],"exposure_ex":[0.0,1368000.0,4643200.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[4085997.0,816039.0,935485.0,110884.0,133956.0,62339.0,15007.0,22296.0,13687.0,13447.0],"premium_ex":[0.0,2892.0,4300.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[597546.73,808165.02,739968.03,255444.96,743617.44,645806.92,0.45,591650.0,693015.0,397800.0]},"Bossier Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","Progressive Property Insurance Company","LOUISIANA FARM BUREAU INSURANCE COMPANY","ALLSTATE INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","Allied Trust Insurance Company","Cajun Underwriters Reciprocal Exchange (CURE)","Auros Reciprocal Insurance Exchange","Louisiana Citizens Property Insurance Corporation"],"policies":[24671,6234,1647,1213,1057,720,536,297,242,32],"wind_in":[24671,3040,1640,1182,1057,720,536,297,242,32],"wind_ex":[0,4,7,31,0,0,0,0,0,0],"exposure_in":[18043862938.0,5769771100.0,1194488801.0,971930238.0,323319171.0,475932460.0,241.0,169555398.0,147563640.0,16872700.0],"exposure_ex":[0.0,6871200.0,4463700.0,28631337.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[48363901.0,14175244.0,5347788.0,4034848.0,2122556.0,1546994.0,698421.0,691103.0,465676.0,141144.0],"premium_ex":[0.0,14804.0,6875.0,35282.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[731379.47,925532.74,725251.25,801261.53,305883.79,661017.31,0.45,570893.6,609767.11,527271.88]},"Caddo Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","ALLSTATE INSURANCE COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","Progressive Property Insurance Company","SureChoice Underwriters Reciprocal Exchange","Allied Trust Insurance Company","Cajun Underwriters Reciprocal Exchange (CURE)","Auros Reciprocal Insurance Exchange","Louisiana Citizens Property Insurance Corporation"],"policies":[44440,11242,2058,1946,1811,982,550,461,285,111],"wind_in":[44440,5555,2057,1930,1808,982,550,461,285,111],"wind_ex":[0,7,2,16,3,0,0,0,0,0],"exposure_in":[30789005384.0,9968758100.0,546438108.0,1466136458.0,1303308881.0,671431230.0,261.0,252004728.0,171636380.0,58420300.0],"exposure_ex":[0.0,6358200.0,151000.0,12749125.0,2306400.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[87695462.0,26804990.0,4412216.0,6452663.0,6435004.0,2371206.0,778609.0,1155076.0,655126.0,494126.0],"premium_ex":[0.0,12916.0,854.0,13760.0,3107.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[692821.9,886742.4,265519.0,753410.31,719662.55,683738.52,0.47,546648.0,602232.91,526309.01]},"Calcasieu Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","ALLSTATE INSURANCE COMPANY","Progressive Property Insurance Company","Auros Reciprocal Insurance Exchange","LOUISIANA FARM BUREAU INSURANCE COMPANY","Allied Trust Insurance Company","Gulf States Insurance Company","Cajun Underwriters Reciprocal Exchange (CURE)","Louisiana Citizens Property Insurance Corporation"],"policies":[30355,15310,6723,2643,2371,1582,1302,1091,631,594,89],"wind_in":[30336,7582,6723,2643,2361,1582,515,1091,631,594,89],"wind_ex":[19,24,0,0,10,0,787,0,0,0,0],"exposure_in":[25486823469.0,15491801000.0,4591479430.0,794142012.0,1536301340.0,1058371590.0,424553692.0,499.0,338547739.0,360435973.0,44855100.0],"exposure_ex":[15062080.0,30284400.0,0.0,0.0,5123100.0,0.0,649254538.0,0.0,0.0,0.0,0.0],"premium_in":[103407159.0,54344450.0,23398259.0,7802507.0,9455341.0,5170243.0,3836874.0,2086098.0,2068938.0,2005537.0,584924.0],"premium_ex":[19161.0,57824.0,0.0,0.0,12039.0,0.0,636671.0,0.0,0.0,0.0,0.0],"avg_exposure":[839625.22,1011874.66,682950.98,300469.93,647955.01,669008.59,326078.1,0.46,536525.74,606794.57,503989.89]},"Caldwell Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","Cajun Underwriters Reciprocal Exchange (CURE)","Auros Reciprocal Insurance Exchange","ALLSTATE INSURANCE COMPANY","Progressive Property Insurance Company","Allied Trust Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[1721,733,129,24,16,7,6,6,5,1],"wind_in":[1721,733,63,24,16,7,6,6,5,1],"wind_ex":[0,0,0,0,0,0,0,0,0,0],"exposure_in":[1051163146.0,510127920.0,100228000.0,12117120.0,8130640.0,6124300.0,1998003.0,6497450.0,2.0,424500.0],"exposure_ex":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[3771828.0,2004056.0,311312.0,50262.0,37813.0,18343.0,21747.0,15529.0,10343.0,3493.0],"premium_ex":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[610786.26,695945.32,776961.24,504880.0,508165.0,874900.0,333000.5,1082908.33,0.4,424500.0]},"Cameron Parish":{"company":["LOUISIANA FARM BUREAU INSURANCE COMPANY","STATE FARM FIRE AND CASUALTY COMPANY","SureChoice Underwriters Reciprocal Exchange","Cajun Underwriters Reciprocal Exchange (CURE)","Allied Trust Insurance Company","Auros Reciprocal Insurance Exchange","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","Progressive Property Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[87,86,71,45,28,19,14,10,3],"wind_in":[0,78,71,45,28,19,0,5,3],"wind_ex":[87,8,0,0,0,0,6,5,0],"exposure_in":[0.0,66375816.0,49188030.0,23226521.0,13.0,12445100.0,0.0,3544970.0,1593400.0],"exposure_ex":[69624085.0,3854075.0,0.0,0.0,0.0,0.0,11161000.0,1783190.0,0.0],"premium_in":[0.0,476217.0,499564.0,255526.0,97772.0,122224.0,0.0,46185.0,29358.0],"premium_ex":[113824.0,7937.0,0.0,0.0,0.0,0.0,8258.0,2144.0,0.0],"avg_exposure":[0.0,771811.81,692789.15,516144.91,0.46,655005.26,0.0,354497.0,531133.33]},"Catahoula Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","Cajun Underwriters Reciprocal Exchange (CURE)","Progressive Property Insurance Company","Auros Reciprocal Insurance Exchange","SureChoice Underwriters Reciprocal Exchange","Louisiana Citizens Property Insurance Corporation","Allied Trust Insurance Company","ALLSTATE INSURANCE COMPANY"],"policies":[1280,441,86,48,22,11,9,4,2,1],"wind_in":[1280,427,45,48,22,11,9,4,2,1],"wind_ex":[0,14,0,0,0,0,0,0,0,0],"exposure_in":[748914183.0,343302258.0,66585000.0,24280715.0,15071390.0,9530500.0,6204910.0,1075600.0,1.0,1.0],"exposure_ex":[0.0,12987144.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[2832411.0,1341278.0,217221.0,126119.0,67115.0,28215.0,22241.0,17159.0,2640.0,1393.0],"premium_ex":[0.0,23439.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[585089.21,778463.17,774244.19,505848.23,685063.18,866409.09,689434.44,268900.0,0.5,1.0]},"Claiborne Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","Progressive Property Insurance Company","ALLSTATE INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","Cajun Underwriters Reciprocal Exchange (CURE)","Allied Trust Insurance Company","Auros Reciprocal Insurance Exchange","Louisiana Citizens Property Insurance Corporation"],"policies":[1973,419,302,24,18,17,8,6,6,5],"wind_in":[1973,419,151,24,18,17,8,6,6,5],"wind_ex":[0,0,1,0,0,0,0,0,0,0],"exposure_in":[1221623060.0,343094271.0,277276400.0,20312420.0,4893010.0,12401000.0,3529210.0,3.0,4847620.0,1564000.0],"exposure_ex":[0.0,0.0,473000.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[4113234.0,1421128.0,721559.0,103400.0,45011.0,39463.0,19375.0,9597.0,18971.0,13477.0],"premium_ex":[0.0,0.0,1355.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[619170.33,818840.74,918133.77,846350.83,271833.89,729470.59,441151.25,0.5,807936.67,312800.0]},"Concordia Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","Progressive Property Insurance Company","Auros Reciprocal Insurance Exchange","SureChoice Underwriters Reciprocal Exchange","Cajun Underwriters Reciprocal Exchange (CURE)","ALLSTATE INSURANCE COMPANY","Louisiana Citizens Property Insurance Corporation","Allied Trust Insurance Company"],"policies":[2088,671,401,114,86,59,32,29,5,4],"wind_in":[2088,671,190,114,86,59,32,29,5,4],"wind_ex":[0,0,1,0,0,0,0,0,0,0],"exposure_in":[1326544055.0,537995821.0,313335500.0,58757150.0,67772310.0,45992980.0,21692382.0,6107816.0,1866000.0,2.0],"exposure_ex":[0.0,0.0,250000.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[4448184.0,1854146.0,921340.0,315725.0,231175.0,141941.0,86134.0,76042.0,17509.0,12446.0],"premium_ex":[0.0,0.0,2282.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[635318.03,801782.15,781385.29,515413.6,788050.12,779542.03,677886.94,210614.34,373200.0,0.5]},"De Soto Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","Progressive Property Insurance Company","SureChoice Underwriters Reciprocal Exchange","Allied Trust Insurance Company","Cajun Underwriters Reciprocal Exchange (CURE)","ALLSTATE INSURANCE COMPANY","Auros Reciprocal Insurance Exchange","Louisiana Citizens Property Insurance Corporation"],"policies":[4963,759,709,168,76,61,60,33,26,5],"wind_in":[4963,384,699,168,76,61,60,33,26,5],"wind_ex":[0,2,10,0,0,0,0,0,0,0],"exposure_in":[3747217733.0,1096231300.0,548158194.0,129247550.0,55255330.0,30.0,37212490.0,9033017.0,16577590.0,3315000.0],"exposure_ex":[0.0,2096600.0,10241680.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[10822197.0,2898944.0,2703293.0,569888.0,182551.0,89939.0,148776.0,80025.0,59713.0,24412.0],"premium_ex":[0.0,7024.0,13607.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[755030.77,1444310.01,773142.73,769330.65,727043.82,0.49,620208.17,273727.79,637599.62,663000.0]},"East Baton Rouge Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","ALLSTATE INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","Cajun Underwriters Reciprocal Exchange (CURE)","Progressive Property Insurance Company","Auros Reciprocal Insurance Exchange","LOUISIANA FARM BUREAU INSURANCE COMPANY","Allied Trust Insurance Company","Gulf States Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[66207,23874,6209,5899,5013,4865,3437,2617,2604,2166,303],"wind_in":[66200,11417,6201,5899,5013,4837,3437,2530,2602,2162,303],"wind_ex":[7,59,4,0,0,28,0,87,2,4,0],"exposure_in":[58990938281.0,22115989700.0,1990191315.0,3954382200.0,2976801806.0,3507261430.0,2227102300.0,2210309273.0,1297.0,1026035235.0,191484700.0],"exposure_ex":[6807550.0,97089100.0,1427000.0,0.0,0.0,19592750.0,0.0,80853631.0,1.0,1832780.0,0.0],"premium_in":[186649569.0,77024079.0,17571832.0,17969788.0,12901859.0,19367636.0,10217469.0,12828581.0,4263594.0,6549791.0,1704968.0],"premium_ex":[8838.0,113138.0,22444.0,0.0,0.0,33920.0,0.0,68877.0,447.0,4458.0,0.0],"avg_exposure":[891007.57,926362.98,320533.31,670347.89,593816.44,720917.05,647978.56,844596.59,0.5,473700.48,631962.71]},"East Carroll Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","ALLSTATE INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","Cajun Underwriters Reciprocal Exchange (CURE)","Allied Trust Insurance Company","Auros Reciprocal Insurance Exchange","Progressive Property Insurance Company"],"policies":[460,327,58,47,7,6,4,1,1],"wind_in":[460,327,28,47,7,6,4,1,1],"wind_ex":[0,0,0,0,0,0,0,0,0],"exposure_in":[284590650.0,282265441.0,48617500.0,10963524.0,7795300.0,3490280.0,2.0,502500.0,1341000.0],"exposure_ex":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[1032245.0,1137679.0,192040.0,119074.0,25601.0,15830.0,7369.0,1830.0,3703.0],"premium_ex":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[618675.33,863197.07,838232.76,233266.47,1113614.29,581713.33,0.5,502500.0,1341000.0]},"East Feliciana Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","Progressive Property Insurance Company","ALLSTATE INSURANCE COMPANY","Cajun Underwriters Reciprocal Exchange (CURE)","Auros Reciprocal Insurance Exchange","Allied Trust Insurance Company","Gulf States Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[2869,710,677,155,123,114,110,75,43,33,5],"wind_in":[2869,321,656,155,123,114,110,75,43,33,5],"wind_ex":[0,4,21,0,0,0,0,0,0,0,0],"exposure_in":[2375908504.0,550877700.0,585152914.0,107783790.0,90135580.0,30246066.0,70929563.0,50521240.0,24.0,15713920.0,2374300.0],"exposure_ex":[0.0,2726000.0,16963704.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[7677689.0,2193233.0,3479779.0,414819.0,465723.0,373034.0,319383.0,204632.0,65801.0,93446.0,19137.0],"premium_ex":[0.0,3239.0,19616.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[828131.23,775884.08,864332.22,695379.29,732809.59,265316.37,644814.21,673616.53,0.56,476179.39,474860.0]},"Evangeline Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","Cajun Underwriters Reciprocal Exchange (CURE)","Auros Reciprocal Insurance Exchange","Progressive Property Insurance Company","ALLSTATE INSURANCE COMPANY","Gulf States Insurance Company","Allied Trust Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[3872,2080,1186,249,92,91,76,49,25,19,1],"wind_in":[3872,1014,1150,249,92,91,74,49,25,19,1],"wind_ex":[0,2,36,0,0,0,2,0,0,0,0],"exposure_in":[2338562260.0,1964312000.0,829867599.0,158902370.0,45848173.0,54696860.0,53910710.0,10077027.0,10888644.0,9.0,303600.0],"exposure_ex":[0.0,3894200.0,25978356.0,0.0,0.0,0.0,988200.0,0.0,0.0,0.0,0.0],"premium_in":[9616292.0,5913738.0,5395213.0,707540.0,261532.0,247069.0,326949.0,90070.0,74103.0,27852.0,2858.0],"premium_ex":[0.0,4156.0,30243.0,0.0,0.0,0.0,3370.0,0.0,0.0,0.0,0.0],"avg_exposure":[603967.53,944380.77,699719.73,638162.13,498349.71,601064.4,709351.45,205653.61,435545.76,0.47,303600.0]},"Franklin Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","Cajun Underwriters Reciprocal Exchange (CURE)","SureChoice Underwriters Reciprocal Exchange","ALLSTATE INSURANCE COMPANY","Progressive Property Insurance Company","Auros Reciprocal Insurance Exchange","Allied Trust Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[1694,1468,161,41,28,16,16,7,0,0],"wind_in":[1694,1409,81,41,28,16,16,7,0,0],"wind_ex":[0,59,0,0,0,0,0,0,0,0],"exposure_in":[969638381.0,1008907085.0,121402500.0,26514150.0,24240140.0,3240008.0,9553280.0,5628200.0,0.0,0.0],"exposure_ex":[0.0,37454130.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[3496222.0,3823927.0,346404.0,112876.0,76138.0,39506.0,42055.0,18678.0,0.0,0.0],"premium_ex":[0.0,47166.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[572395.74,687266.41,754052.8,646686.59,865719.29,202500.5,597080.0,804028.57,0.0,0.0]},"Grant Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","Cajun Underwriters Reciprocal Exchange (CURE)","Auros Reciprocal Insurance Exchange","Progressive Property Insurance Company","ALLSTATE INSURANCE COMPANY","Allied Trust Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[3442,648,427,203,153,106,70,28,14,0],"wind_in":[3442,322,423,203,153,106,70,28,14,0],"wind_ex":[0,0,4,0,0,0,0,0,0,0],"exposure_in":[2071784264.0,557595200.0,289585849.0,119393000.0,76715415.0,59529220.0,47255580.0,6205016.0,7.0,0.0],"exposure_ex":[0.0,0.0,2372800.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[7140201.0,1644305.0,1133737.0,367012.0,350081.0,181473.0,200995.0,70900.0,19938.0,0.0],"premium_ex":[0.0,0.0,4182.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[601912.92,860486.42,678187.0,588142.86,501407.94,561596.42,675079.71,221607.71,0.5,0.0]},"Iberia Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","LOUISIANA FARM BUREAU INSURANCE COMPANY","ALLSTATE INSURANCE COMPANY","Auros Reciprocal Insurance Exchange","Cajun Underwriters Reciprocal Exchange (CURE)","Progressive Property Insurance Company","Gulf States Insurance Company","Allied Trust Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[3333,2466,2264,1872,1607,610,580,444,190,180,108],"wind_in":[3142,907,2264,675,1596,610,580,414,176,178,108],"wind_ex":[191,314,0,1197,7,0,0,30,14,2,0],"exposure_in":[2171581533.0,1922359600.0,1339022760.0,461173785.0,504056840.0,337052170.0,313026865.0,281569650.0,75760708.0,83.0,46545400.0],"exposure_ex":[82323796.0,591626800.0,0.0,895524198.0,1246000.0,0.0,0.0,21014480.0,7143259.0,1.0,0.0],"premium_in":[10449045.0,7163844.0,8716433.0,3925937.0,4912101.0,2163414.0,2014666.0,2269564.0,839187.0,398267.0,673105.0],"premium_ex":[143650.0,591255.0,0.0,912485.0,16489.0,0.0,0.0,35384.0,20680.0,906.0,0.0],"avg_exposure":[651539.61,779545.66,591441.15,246353.52,313663.25,552544.54,539701.49,634165.88,398740.57,0.46,430975.93]},"Iberville Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","Progressive Property Insurance Company","SureChoice Underwriters Reciprocal Exchange","ALLSTATE INSURANCE COMPANY","Cajun Underwriters Reciprocal Exchange (CURE)","Auros Reciprocal Insurance Exchange","Allied Trust Insurance Company","Gulf States Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[3699,2241,1310,519,493,425,225,206,73,55,13],"wind_in":[3699,1123,1250,518,493,422,225,206,72,54,13],"wind_ex":[0,4,60,1,0,1,0,0,1,1,0],"exposure_in":[2831429123.0,1856746000.0,1066681053.0,307351450.0,293044970.0,127056625.0,114920771.0,125187470.0,33.0,22422665.0,7014800.0],"exposure_ex":[0.0,6533000.0,46717257.0,369000.0,0.0,322000.0,0.0,0.0,0.0,377512.0,0.0],"premium_in":[10924053.0,7715196.0,6483307.0,1754592.0,1350932.0,1387805.0,636085.0,605134.0,122400.0,173929.0,70841.0],"premium_ex":[0.0,7424.0,50131.0,668.0,0.0,4233.0,0.0,0.0,0.0,1031.0,0.0],"avg_exposure":[765457.99,828534.58,814260.35,592199.33,594411.7,298956.76,510758.98,607706.17,0.45,407684.82,539600.0]},"Jackson Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","ALLSTATE INSURANCE COMPANY","Auros Reciprocal Insurance Exchange","Progressive Property Insurance Company","Cajun Underwriters Reciprocal Exchange (CURE)","Allied Trust Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[2307,1102,251,82,70,31,23,12,7,3],"wind_in":[2307,1082,127,82,70,31,20,12,7,3],"wind_ex":[0,20,0,0,0,0,3,0,0,0],"exposure_in":[1489190104.0,833920756.0,224218000.0,66722960.0,17771040.0,23517080.0,14618030.0,6594500.0,3.0,1326000.0],"exposure_ex":[0.0,17440155.0,0.0,0.0,0.0,0.0,1585780.0,0.0,0.0,0.0],"premium_in":[4866168.0,2894226.0,574842.0,198593.0,144424.0,77485.0,62852.0,30787.0,9315.0,15267.0],"premium_ex":[0.0,16530.0,0.0,0.0,0.0,0.0,1964.0,0.0,0.0,0.0],"avg_exposure":[645509.36,756733.9,893298.8,813694.63,253872.0,758615.48,635566.52,549541.67,0.43,442000.0]},"Jefferson Davis Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","ALLSTATE INSURANCE COMPANY","Progressive Property Insurance Company","Auros Reciprocal Insurance Exchange","Cajun Underwriters Reciprocal Exchange (CURE)","Allied Trust Insurance Company","Gulf States Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[4271,1572,607,530,381,184,174,93,42,26,13],"wind_in":[4270,791,428,530,381,183,174,93,42,26,13],"wind_ex":[1,3,179,0,0,1,0,0,0,0,0],"exposure_in":[2761162161.0,1325758000.0,306010159.0,316260530.0,99037803.0,119791110.0,94794390.0,48845335.0,20.0,13059014.0,3370400.0],"exposure_ex":[462660.0,6014600.0,126568251.0,0.0,0.0,334950.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[13286780.0,5342078.0,2910621.0,1845746.0,976646.0,738819.0,546899.0,280770.0,75453.0,113168.0,68515.0],"premium_ex":[588.0,9498.0,133959.0,0.0,0.0,567.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[646490.79,843357.51,504135.35,596717.98,259941.74,651038.64,544795.34,525218.66,0.48,502269.77,259261.54]},"Jefferson Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","SureChoice Underwriters Reciprocal Exchange","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","ALLSTATE INSURANCE COMPANY","Allied Trust Insurance Company","Cajun Underwriters Reciprocal Exchange (CURE)","Gulf States Insurance Company","Auros Reciprocal Insurance Exchange","Progressive Property Insurance Company","LOUISIANA FARM BUREAU INSURANCE COMPANY","Louisiana Citizens Property Insurance Corporation"],"policies":[30417,21449,12577,10782,7417,5098,5082,3687,3331,3123,2380],"wind_in":[27254,21449,65,10642,7316,5097,4584,3687,2975,223,2380],"wind_ex":[3163,0,5871,81,101,1,498,0,356,2900,0],"exposure_in":[20078712189.0,11570730200.0,156063300.0,3596315894.0,3452.0,2410151391.0,2136080069.0,1895926070.0,1906240275.0,119095751.0,1654035200.0],"exposure_ex":[1544019806.0,0.0,11280677700.0,23937400.0,38.0,1331900.0,218082837.0,0.0,198902570.0,2151231988.0,0.0],"premium_in":[113511639.0,106469791.0,797220.0,50942734.0,19541336.0,22844432.0,24482993.0,16734746.0,19203496.0,1229179.0,21215124.0],"premium_ex":[2935064.0,0.0,12002375.0,257300.0,27773.0,2500.0,567003.0,0.0,423840.0,1857054.0,0.0],"avg_exposure":[660114.81,539453.13,12408.63,333548.13,0.47,472764.1,420322.72,514219.17,572272.67,38135.05,694972.77]},"La Salle Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","Progressive Property Insurance Company","SureChoice Underwriters Reciprocal Exchange","Auros Reciprocal Insurance Exchange","Cajun Underwriters Reciprocal Exchange (CURE)","ALLSTATE INSURANCE COMPANY","Allied Trust Insurance Company"],"policies":[1971,1031,217,86,73,52,43,13,9],"wind_in":[1971,1011,112,86,73,52,43,13,9],"wind_ex":[0,20,0,0,0,0,0,0,0],"exposure_in":[1240657031.0,777508695.0,592053300.0,64016640.0,40158850.0,31021960.0,23467537.0,3483007.0,4.0],"exposure_ex":[0.0,15776635.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[4254875.0,2883472.0,1617778.0,330180.0,130396.0,109114.0,103991.0,30208.0,11176.0],"premium_ex":[0.0,14408.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[629455.62,754130.65,2728356.22,744379.53,550121.23,596576.15,545756.67,267923.62,0.44]},"Lafayette Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","Progressive Property Insurance Company","Auros Reciprocal Insurance Exchange","ALLSTATE INSURANCE COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","Cajun Underwriters Reciprocal Exchange (CURE)","Gulf States Insurance Company","Allied Trust Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[29840,21739,12513,6132,4090,2910,1922,1855,1272,797,146],"wind_in":[29811,10892,12513,6113,4090,2908,754,1855,1269,797,146],"wind_ex":[29,44,0,19,0,2,1168,0,3,0,0],"exposure_in":[25795240775.0,20874596200.0,7647263130.0,4031504281.0,2363612930.0,954128124.0,519953509.0,977078341.0,610509397.0,380.0,107445600.0],"exposure_ex":[19689310.0,54321200.0,0.0,14428370.0,0.0,1254000.0,888113538.0,0.0,977249.0,0.0,0.0],"premium_in":[90053309.0,65486104.0,36481109.0,23401822.0,10782847.0,8667329.0,4336604.0,5062607.0,3767598.0,1490886.0,898274.0],"premium_ex":[48639.0,64663.0,0.0,21780.0,0.0,9603.0,801613.0,0.0,2250.0,0.0,0.0],"avg_exposure":[864451.77,960237.19,611145.46,657453.41,577900.47,327879.08,270527.32,526726.87,479960.22,0.48,735928.77]},"Lafourche Parish":{"company":["ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","STATE FARM FIRE AND CASUALTY COMPANY","SureChoice Underwriters Reciprocal Exchange","Progressive Property Insurance Company","ALLSTATE INSURANCE COMPANY","Allied Trust Insurance Company","Cajun Underwriters Reciprocal Exchange (CURE)","Auros Reciprocal Insurance Exchange","Gulf States Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[6996,4536,3612,2717,2336,2305,2285,2229,617,413,158],"wind_in":[2973,2052,3304,2717,2267,2246,2281,2229,617,411,158],"wind_ex":[519,2484,308,0,69,36,4,0,0,2,0],"exposure_in":[6057458100.0,1597957432.0,2261821180.0,1575572330.0,1402218050.0,667905076.0,1171.0,1089224877.0,346011160.0,162250537.0,94740700.0],"exposure_ex":[866804300.0,2081195213.0,126078438.0,0.0,36364820.0,8922500.0,2.0,0.0,0.0,651728.0,0.0],"premium_in":[23997263.0,11157455.0,12524468.0,9854150.0,10936142.0,9169305.0,5213906.0,6957163.0,2005827.0,1735031.0,1130804.0],"premium_ex":[971494.0,2082909.0,263780.0,0.0,60312.0,142005.0,1400.0,0.0,0.0,2433.0,0.0],"avg_exposure":[865845.93,352283.38,626196.34,579894.12,600264.58,289763.59,0.51,488660.78,560796.05,392858.44,599624.68]},"Lincoln Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","ALLSTATE INSURANCE COMPANY","Progressive Property Insurance Company","Auros Reciprocal Insurance Exchange","Allied Trust Insurance Company","Cajun Underwriters Reciprocal Exchange (CURE)","Louisiana Citizens Property Insurance Corporation"],"policies":[9655,1439,1028,220,214,175,49,34,22,13],"wind_in":[9655,1428,512,220,214,175,49,34,22,13],"wind_ex":[0,11,2,0,0,0,0,0,0,0],"exposure_in":[6705828556.0,1204606813.0,978441500.0,154749650.0,61942718.0,142504620.0,28326210.0,16.0,11635820.0,8610400.0],"exposure_ex":[0.0,10102741.0,4308000.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[19198674.0,4090060.0,2448724.0,512087.0,507103.0,593504.0,107360.0,51646.0,47824.0,56719.0],"premium_ex":[0.0,7500.0,11088.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[694544.65,837113.84,951791.34,703407.5,289451.95,814312.11,578085.92,0.47,528900.91,662338.46]},"Livingston Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","Cajun Underwriters Reciprocal Exchange (CURE)","Progressive Property Insurance Company","SureChoice Underwriters Reciprocal Exchange","Auros Reciprocal Insurance Exchange","LOUISIANA FARM BUREAU INSURANCE COMPANY","Allied Trust Insurance Company","ALLSTATE INSURANCE COMPANY","Gulf States Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[20132,8065,4568,4128,2632,1683,1539,1396,877,864,57],"wind_in":[20129,3912,4568,4122,2632,1683,1481,1396,876,862,57],"wind_ex":[3,20,0,6,0,0,58,0,0,2,0],"exposure_in":[14872211685.0,7001162900.0,2442980585.0,2482927350.0,1511876580.0,921271770.0,1092937278.0,684.0,255804570.0,390788027.0,27484300.0],"exposure_ex":[1748260.0,30684500.0,0.0,1960750.0,0.0,0.0,52293206.0,0.0,0.0,1057440.0,0.0],"premium_in":[50351551.0,24918953.0,11025012.0,12676289.0,7067323.0,4299292.0,6450454.0,2025114.0,2782969.0,2556505.0,309440.0],"premium_ex":[5189.0,55929.0,0.0,6052.0,0.0,0.0,65292.0,0.0,496.0,4115.0,0.0],"avg_exposure":[738734.93,868092.11,534803.11,601484.34,574421.19,547398.56,710160.67,0.49,291681.38,452300.96,482180.7]},"Madison Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","ALLSTATE INSURANCE COMPANY","Progressive Property Insurance Company","SureChoice Underwriters Reciprocal Exchange","Louisiana Citizens Property Insurance Corporation","Auros Reciprocal Insurance Exchange","Allied Trust Insurance Company","Cajun Underwriters Reciprocal Exchange (CURE)"],"policies":[781,569,86,25,16,5,4,3,2,2],"wind_in":[781,544,40,25,16,5,4,3,2,2],"wind_ex":[0,25,1,0,0,0,0,0,0,0],"exposure_in":[462384671.0,475541209.0,53731300.0,4051015.0,11931600.0,3436050.0,2650400.0,2260300.0,1.0,1018260.0],"exposure_ex":[0.0,15081392.0,169200.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[1591829.0,1728299.0,169807.0,39387.0,77279.0,14840.0,13610.0,9348.0,2858.0,8936.0],"premium_ex":[0.0,16393.0,1221.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[592041.83,835749.05,624782.56,162040.6,745725.0,687210.0,662600.0,753433.33,0.5,509130.0]},"Morehouse Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","ALLSTATE INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","Progressive Property Insurance Company","Cajun Underwriters Reciprocal Exchange (CURE)","Allied Trust Insurance Company","Auros Reciprocal Insurance Exchange","Gulf States Insurance Company"],"policies":[3734,627,589,379,136,46,45,27,1,1],"wind_in":[3734,625,298,379,136,44,45,27,1,1],"wind_ex":[0,2,0,0,0,2,0,0,0,0],"exposure_in":[2134584172.0,442842103.0,488820400.0,93389005.0,90753900.0,28072920.0,22358058.0,13.0,693000.0,477050.0],"exposure_ex":[0.0,1220500.0,0.0,0.0,0.0,951000.0,0.0,0.0,0.0,0.0],"premium_in":[7538600.0,1951747.0,1428056.0,677170.0,326463.0,126242.0,100352.0,39637.0,2279.0,3329.0],"premium_ex":[0.0,1681.0,0.0,0.0,0.0,3037.0,0.0,0.0,0.0,0.0],"avg_exposure":[571661.54,706287.25,829915.79,246408.98,667308.09,610280.87,496845.73,0.48,693000.0,477050.0]},"Natchitoches Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","Cajun Underwriters Reciprocal Exchange (CURE)","SureChoice Underwriters Reciprocal Exchange","Progressive Property Insurance Company","ALLSTATE INSURANCE COMPANY","Auros Reciprocal Insurance Exchange","Allied Trust Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[5439,1950,1287,120,108,80,67,29,22,6],"wind_in":[5439,1713,659,120,108,80,67,29,22,6],"wind_ex":[0,237,1,0,0,0,0,0,0,0],"exposure_in":[3725788998.0,1444204067.0,1259899800.0,73298312.0,72765350.0,66481620.0,14144437.0,17048360.0,12.0,3303100.0],"exposure_ex":[0.0,180453278.0,-179200.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[11897747.0,5473527.0,3110015.0,296816.0,253713.0,298291.0,138604.0,62940.0,38382.0,27101.0],"premium_ex":[0.0,147408.0,1256.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[685013.61,740617.47,978943.12,610819.27,673753.24,831020.25,211111.0,587874.48,0.55,550516.67]},"Orleans Parish":{"company":["SureChoice Underwriters Reciprocal Exchange","STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","Cajun Underwriters Reciprocal Exchange (CURE)","ALLSTATE INSURANCE COMPANY","Louisiana Citizens Property Insurance Corporation","Allied Trust Insurance Company","Gulf States Insurance Company","Auros Reciprocal Insurance Exchange","Progressive Property Insurance Company","LOUISIANA FARM BUREAU INSURANCE COMPANY"],"policies":[12078,11528,7526,6059,5300,4390,2413,2165,2009,1559,885],"wind_in":[12078,9687,20,6057,5187,4390,2361,1934,2009,1324,3],"wind_ex":[0,1841,3563,2,55,0,52,231,0,235,882],"exposure_in":[7630408190.0,8890482726.0,54520500.0,3285095610.0,1673345339.0,3665162700.0,1126.0,963408245.0,1200505190.0,939143540.0,2628300.0],"exposure_ex":[0.0,1142352965.0,7411395700.0,1185900.0,15935200.0,0.0,23.0,109536958.0,0.0,140832640.0,757455469.0],"premium_in":[71969671.0,49690262.0,276334.0,29939691.0,27316304.0,40301161.0,7095217.0,11395477.0,11029768.0,9348409.0,14615.0],"premium_ex":[0.0,2084331.0,8496084.0,5000.0,268619.0,0.0,22438.0,309825.0,0.0,333871.0,669010.0],"avg_exposure":[631760.9,771207.73,7244.29,542184.45,315725.54,834889.0,0.47,444992.26,597563.56,602401.24,2969.83]},"Ouachita Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","ALLSTATE INSURANCE COMPANY","Progressive Property Insurance Company","Auros Reciprocal Insurance Exchange","Allied Trust Insurance Company","Cajun Underwriters Reciprocal Exchange (CURE)","Louisiana Citizens Property Insurance Corporation","Gulf States Insurance Company"],"policies":[28672,5610,3122,1614,897,755,346,279,232,32,1],"wind_in":[28672,2793,3114,1614,897,755,346,279,232,32,1],"wind_ex":[0,5,8,0,0,0,0,0,0,0,0],"exposure_in":[19894623637.0,5030153300.0,2364025182.0,1220609310.0,245136984.0,567269773.0,254571240.0,121.0,116192301.0,17807200.0,382500.0],"exposure_ex":[0.0,6804000.0,4997884.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[58749717.0,13047977.0,9046529.0,3748666.0,1891327.0,2580830.0,847579.0,392408.0,534967.0,156617.0,3010.0],"premium_ex":[0.0,10137.0,5640.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[693869.41,896640.52,757214.98,756263.51,273285.38,751350.69,735755.03,0.43,500828.88,556475.0,382500.0]},"Plaquemines Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","Cajun Underwriters Reciprocal Exchange (CURE)","Allied Trust Insurance Company","Progressive Property Insurance Company","LOUISIANA FARM BUREAU INSURANCE COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","ALLSTATE INSURANCE COMPANY","Louisiana Citizens Property Insurance Corporation","Gulf States Insurance Company","SureChoice Underwriters Reciprocal Exchange"],"policies":[1186,1061,712,449,225,202,145,97,50,18],"wind_in":[1020,1061,706,401,0,1,140,97,24,18],"wind_ex":[166,0,6,48,225,102,3,0,26,0],"exposure_in":[939833845.0,699164182.0,361.0,324719430.0,0.0,838400.0,52143077.0,77920400.0,11647695.0,9377970.0],"exposure_ex":[90946575.0,0.0,3.0,42951760.0,219317608.0,215512900.0,1418000.0,0.0,13238050.0,0.0],"premium_in":[5294293.0,4244146.0,2097773.0,2590665.0,0.0,3837.0,803554.0,921507.0,181620.0,131963.0],"premium_ex":[186062.0,0.0,2342.0,67668.0,279062.0,263426.0,11808.0,0.0,46008.0,0.0],"avg_exposure":[792440.0,658967.18,0.51,723205.86,0.0,4150.5,359607.43,803303.09,232953.9,520998.33]},"Pointe Coupee Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","ALLSTATE INSURANCE COMPANY","Cajun Underwriters Reciprocal Exchange (CURE)","Auros Reciprocal Insurance Exchange","Progressive Property Insurance Company","Allied Trust Insurance Company","Gulf States Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[3089,1403,777,156,154,113,107,84,37,35,7],"wind_in":[3089,1350,364,156,154,113,107,84,37,35,7],"wind_ex":[0,53,3,0,0,0,0,0,0,0,0],"exposure_in":[2284652738.0,1109972143.0,571927300.0,100690480.0,41192080.0,61624667.0,65927810.0,65910540.0,18.0,15602761.0,3828600.0],"exposure_ex":[0.0,51179914.0,2664000.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[8250344.0,6523553.0,2411221.0,485659.0,475664.0,332771.0,348592.0,372438.0,60595.0,114642.0,39278.0],"premium_ex":[0.0,68038.0,6638.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[739609.17,791141.94,736071.17,645451.79,267481.04,545351.04,616147.76,784649.29,0.49,445793.17,546942.86]},"Rapides Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","Auros Reciprocal Insurance Exchange","Cajun Underwriters Reciprocal Exchange (CURE)","ALLSTATE INSURANCE COMPANY","Progressive Property Insurance Company","Allied Trust Insurance Company","Louisiana Citizens Property Insurance Corporation","Gulf States Insurance Company"],"policies":[19146,6006,2337,1460,689,672,665,426,64,38,2],"wind_in":[19146,2937,2334,1460,689,672,665,426,64,38,2],"wind_ex":[0,5,3,0,0,0,0,0,0,0,0],"exposure_in":[13069646572.0,5622249700.0,1867374578.0,910738010.0,402577430.0,370413972.0,181346754.0,285834270.0,28.0,19874600.0,846883.0],"exposure_ex":[0.0,11023100.0,1858200.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[40521545.0,14431022.0,7269449.0,2943077.0,1361016.0,1514852.0,1521433.0,1532264.0,86504.0,156546.0,3652.0],"premium_ex":[0.0,24274.0,2285.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[682630.66,936105.51,799047.74,623793.16,584292.35,551211.27,272701.89,670972.46,0.44,523015.79,423441.5]},"Red River Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","ALLSTATE INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","Cajun Underwriters Reciprocal Exchange (CURE)","Progressive Property Insurance Company","Allied Trust Insurance Company","Auros Reciprocal Insurance Exchange"],"policies":[970,219,110,21,16,14,14,8,6],"wind_in":[970,218,59,21,16,14,14,8,6],"wind_ex":[0,1,0,0,0,0,0,0,0],"exposure_in":[587984907.0,170834260.0,106945200.0,5406011.0,8812460.0,8779250.0,8925400.0,4.0,3664380.0],"exposure_ex":[0.0,682600.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[2132890.0,743426.0,306628.0,61584.0,39341.0,35281.0,45436.0,13110.0,11332.0],"premium_ex":[0.0,434.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[606170.01,780065.11,972229.09,257429.1,550778.75,627089.29,637528.57,0.5,610730.0]},"Richland Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","ALLSTATE INSURANCE COMPANY","Progressive Property Insurance Company","Cajun Underwriters Reciprocal Exchange (CURE)","Auros Reciprocal Insurance Exchange","Allied Trust Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[3141,1035,196,169,58,49,27,15,14,3],"wind_in":[3141,1029,100,169,58,49,27,15,14,3],"wind_ex":[0,6,1,0,0,0,0,0,0,0],"exposure_in":[1995275376.0,855902989.0,180420100.0,130314020.0,12516033.0,55380500.0,18377975.0,9084880.0,6.0,1504700.0],"exposure_ex":[0.0,3726277.0,115200.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[6763845.0,3204642.0,477024.0,423695.0,146042.0,180190.0,65226.0,31561.0,20611.0,17266.0],"premium_ex":[0.0,5021.0,561.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[635235.71,826959.41,920510.71,771088.88,215793.67,1130214.29,680665.74,605658.67,0.43,501566.67]},"Sabine Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","Progressive Property Insurance Company","Cajun Underwriters Reciprocal Exchange (CURE)","Auros Reciprocal Insurance Exchange","ALLSTATE INSURANCE COMPANY","Allied Trust Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[3674,912,852,62,58,27,24,15,10,1],"wind_in":[3674,460,844,62,58,27,24,15,10,1],"wind_ex":[0,0,8,0,0,0,0,0,0,0],"exposure_in":[2585222343.0,775858500.0,667921580.0,43439950.0,40979800.0,13970180.0,13005990.0,3135009.0,5.0,121500.0],"exposure_ex":[0.0,0.0,6602017.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[8621020.0,1962081.0,2378702.0,158314.0,169664.0,69058.0,55205.0,44285.0,16803.0,1377.0],"premium_ex":[0.0,0.0,7390.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[703653.33,850722.04,783945.52,700644.35,706548.28,517414.07,541916.25,209000.6,0.5,121500.0]},"Saint Bernard Parish":{"company":["Cajun Underwriters Reciprocal Exchange (CURE)","STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","Allied Trust Insurance Company","ALLSTATE INSURANCE COMPANY","Progressive Property Insurance Company","LOUISIANA FARM BUREAU INSURANCE COMPANY","Gulf States Insurance Company","Auros Reciprocal Insurance Exchange","Louisiana Citizens Property Insurance Corporation"],"policies":[2352,1634,1309,1284,1261,636,518,355,234,217,153],"wind_in":[2352,1310,2,1284,1192,636,455,0,117,217,153],"wind_ex":[0,324,647,0,69,0,63,355,117,0,0],"exposure_in":[1007202882.0,906596729.0,2861900.0,607475330.0,605.0,201030331.0,271623450.0,0.0,46351621.0,98331180.0,66596000.0],"exposure_ex":[0.0,144643865.0,1201695500.0,0.0,35.0,0.0,32553350.0,267693174.0,42443159.0,0.0,0.0],"premium_in":[9191438.0,5698563.0,21835.0,5799068.0,2995158.0,2733724.0,2449967.0,0.0,666827.0,919796.0,1265195.0],"premium_ex":[0.0,293535.0,1430742.0,0.0,21210.0,0.0,63052.0,244237.0,143154.0,0.0,0.0],"avg_exposure":[428232.52,554832.76,2186.33,473111.63,0.48,316085.43,524369.59,0.0,198083.85,453139.08,435267.97]},"Saint Charles Parish":{"company":["SureChoice Underwriters Reciprocal Exchange","STATE FARM FIRE AND CASUALTY COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","ALLSTATE INSURANCE COMPANY","Allied Trust Insurance Company","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","Cajun Underwriters Reciprocal Exchange (CURE)","Progressive Property Insurance Company","Auros Reciprocal Insurance Exchange","Gulf States Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[3806,3242,1864,1853,1782,1644,1238,807,716,617,163],"wind_in":[3806,3122,1132,1847,1776,455,1238,788,716,605,163],"wind_ex":[0,120,732,5,6,330,0,19,0,12,0],"exposure_in":[2179793930.0,2491820877.0,894206698.0,658421562.0,848.0,978206700.0,714671309.0,543210690.0,387139400.0,300402905.0,96075600.0],"exposure_ex":[0.0,58831665.0,600148835.0,2667000.0,3.0,634071000.0,0.0,12115710.0,0.0,5771477.0,0.0],"premium_in":[16814356.0,11595063.0,6821857.0,7768888.0,4266625.0,4056839.0,4842403.0,4474983.0,3002715.0,2830498.0,1094966.0],"premium_ex":[0.0,106133.0,520636.0,14060.0,3106.0,728494.0,0.0,21610.0,0.0,13755.0,0.0],"avg_exposure":[572725.68,768606.07,479724.62,355327.34,0.48,595016.24,577278.92,673123.53,540697.49,486876.67,589420.86]},"Saint Helena Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","Cajun Underwriters Reciprocal Exchange (CURE)","Progressive Property Insurance Company","Allied Trust Insurance Company","Auros Reciprocal Insurance Exchange","ALLSTATE INSURANCE COMPANY","Gulf States Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[460,198,93,37,35,18,17,16,13,7,2],"wind_in":[460,186,48,37,35,18,17,16,13,7,2],"wind_ex":[0,12,1,0,0,0,0,0,0,0,0],"exposure_in":[319971440.0,132424699.0,76186100.0,23012890.0,20578864.0,11053030.0,8.0,9501670.0,2838008.0,2739103.0,622100.0],"exposure_ex":[0.0,12112198.0,1203000.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[1185530.0,781443.0,305716.0,95100.0,99575.0,67296.0,25730.0,36076.0,43525.0,18974.0,9984.0],"premium_ex":[0.0,25529.0,3836.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[695590.09,668811.61,819205.38,621970.0,587967.54,614057.22,0.47,593854.38,218308.31,391300.43,311050.0]},"Saint James Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","Cajun Underwriters Reciprocal Exchange (CURE)","Progressive Property Insurance Company","ALLSTATE INSURANCE COMPANY","Gulf States Insurance Company","Auros Reciprocal Insurance Exchange","Allied Trust Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[1815,1813,1191,712,399,339,302,179,168,160,30],"wind_in":[1804,927,942,712,399,339,302,179,168,160,30],"wind_ex":[11,10,249,0,0,0,0,0,0,0,0],"exposure_in":[1232187450.0,1878992600.0,687082709.0,446008470.0,214732486.0,244728080.0,94209764.0,98017281.0,94366390.0,86.0,14337200.0],"exposure_ex":[5386850.0,17118800.0,189926247.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[5751947.0,6953376.0,5629691.0,2788246.0,1248268.0,1807351.0,1322060.0,708630.0,644870.0,322807.0,230508.0],"premium_ex":[8083.0,26656.0,249979.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[678891.16,1036399.67,576895.64,626416.39,538176.66,721911.74,311952.86,547582.58,561704.7,0.54,477906.67]},"Saint John the Baptist Parish":{"company":["SureChoice Underwriters Reciprocal Exchange","STATE FARM FIRE AND CASUALTY COMPANY","Allied Trust Insurance Company","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","ALLSTATE INSURANCE COMPANY","Cajun Underwriters Reciprocal Exchange (CURE)","Auros Reciprocal Insurance Exchange","LOUISIANA FARM BUREAU INSURANCE COMPANY","Progressive Property Insurance Company","Gulf States Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[3578,2227,1590,1490,1277,1005,672,595,420,388,112],"wind_in":[3578,2064,1590,502,1275,1005,672,290,409,384,112],"wind_ex":[0,163,0,214,1,0,0,305,11,4,0],"exposure_in":[1925415210.0,1459602101.0,788.0,943174000.0,396146565.0,493997876.0,357321460.0,216914047.0,264104750.0,161136499.0,47428400.0],"exposure_ex":[0.0,50136940.0,0.0,345563600.0,166000.0,0.0,0.0,228543846.0,5513650.0,1650572.0,0.0],"premium_in":[14382605.0,6874025.0,3512259.0,3776059.0,5324167.0,3686390.0,2721034.0,1793624.0,2673837.0,1731898.0,751210.0],"premium_ex":[0.0,116193.0,0.0,427746.0,2597.0,0.0,0.0,211613.0,14582.0,4464.0,0.0],"avg_exposure":[538126.11,655411.81,0.5,633002.68,310216.57,491540.18,531728.36,364561.42,628820.83,415300.26,423467.86]},"Saint Landry Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","ALLSTATE INSURANCE COMPANY","Auros Reciprocal Insurance Exchange","Progressive Property Insurance Company","Cajun Underwriters Reciprocal Exchange (CURE)","Gulf States Insurance Company","Allied Trust Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[10513,6964,2394,836,456,377,367,220,131,121,36],"wind_in":[10512,3502,2199,836,456,377,367,220,130,121,36],"wind_ex":[1,8,195,0,0,0,0,0,1,0,0],"exposure_in":[7440825391.0,6607120200.0,1577043735.0,512933490.0,116089146.0,211030900.0,232185860.0,112596464.0,59982079.0,57.0,18521600.0],"exposure_ex":[280020.0,9956100.0,134100469.0,0.0,0.0,0.0,0.0,0.0,744600.0,0.0,0.0],"premium_in":[28154133.0,19345559.0,9924720.0,2402460.0,1140094.0,1006851.0,1492546.0,651800.0,404488.0,191034.0,174033.0],"premium_ex":[1667.0,9134.0,155538.0,0.0,0.0,0.0,0.0,0.0,944.0,0.0,0.0],"avg_exposure":[707773.75,948753.62,658748.43,613556.81,254581.46,559763.66,632659.02,511802.11,457878.47,0.47,514488.89]},"Saint Martin Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","ALLSTATE INSURANCE COMPANY","Auros Reciprocal Insurance Exchange","Progressive Property Insurance Company","Gulf States Insurance Company","Cajun Underwriters Reciprocal Exchange (CURE)","Allied Trust Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[5406,3008,1215,1066,622,395,361,176,132,83,23],"wind_in":[5402,1496,706,1066,622,395,360,175,132,83,23],"wind_ex":[4,24,509,0,0,0,1,1,0,0,0],"exposure_in":[3581276551.0,2499003700.0,419944506.0,617318140.0,167767631.0,213289610.0,222983490.0,75939764.0,65125520.0,38.0,6393400.0],"exposure_ex":[2374685.0,24651400.0,331848972.0,0.0,0.0,0.0,299440.0,599400.0,0.0,0.0,0.0],"premium_in":[15360178.0,9258172.0,3332113.0,3232883.0,1651732.0,1124681.0,1442553.0,539255.0,391714.0,136650.0,107477.0],"premium_ex":[7651.0,34672.0,329262.0,0.0,0.0,0.0,619.0,1344.0,0.0,0.0,0.0],"avg_exposure":[662463.29,830785.8,345633.34,579097.69,269722.88,539973.7,617682.8,431475.93,493375.15,0.46,277973.91]},"Saint Mary Parish":{"company":["LOUISIANA FARM BUREAU INSURANCE COMPANY","STATE FARM FIRE AND CASUALTY COMPANY","SureChoice Underwriters Reciprocal Exchange","ALLSTATE INSURANCE COMPANY","Cajun Underwriters Reciprocal Exchange (CURE)","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","Auros Reciprocal Insurance Exchange","Allied Trust Insurance Company","Gulf States Insurance Company","Progressive Property Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[2226,2212,1206,970,301,293,158,148,134,133,68],"wind_in":[105,1977,1206,955,301,10,158,148,132,130,68],"wind_ex":[2121,235,0,16,0,133,0,0,2,3,0],"exposure_in":[64763149.0,1265737680.0,628700680.0,268094508.0,149490278.0,19554700.0,81802450.0,81.0,57228366.0,71477010.0,32649500.0],"exposure_ex":[1539232808.0,95962305.0,0.0,5487600.0,0.0,268377500.0,0.0,1.0,902349.0,1972720.0,0.0],"premium_in":[581268.0,6945911.0,5495254.0,3527735.0,1161778.0,104576.0,705700.0,395254.0,687562.0,756197.0,566998.0],"premium_ex":[1813843.0,189239.0,0.0,44320.0,0.0,258794.0,0.0,661.0,1769.0,1922.0,0.0],"avg_exposure":[29093.96,572214.14,521310.68,276386.09,496645.44,66739.59,517737.03,0.55,427077.36,537421.13,480139.71]},"Saint Tammany Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","Allied Trust Insurance Company","Progressive Property Insurance Company","Cajun Underwriters Reciprocal Exchange (CURE)","Auros Reciprocal Insurance Exchange","ALLSTATE INSURANCE COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","Gulf States Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[19522,17698,15279,10233,6685,5459,4440,3733,3455,2954,1039],"wind_in":[18903,4371,15279,9932,6254,5459,4440,3712,576,2353,1039],"wind_ex":[619,4260,0,301,431,0,0,12,2879,601,0],"exposure_in":[17864389393.0,10581309000.0,10141015100.0,4537.0,4525397619.0,3136381694.0,2825156360.0,1420740239.0,481174576.0,1227439696.0,924590300.0],"exposure_ex":[366018510.0,9374043700.0,0.0,137.0,293537650.0,0.0,0.0,3769000.0,2718093351.0,292910873.0,0.0],"premium_in":[66377919.0,32930279.0,60313371.0,19918425.0,29438304.0,19470109.0,16134910.0,15608504.0,3253546.0,9485418.0,8254512.0],"premium_ex":[557509.0,9550968.0,0.0,115316.0,492216.0,0.0,0.0,37264.0,2277537.0,681909.0,0.0],"avg_exposure":[915090.12,597881.63,663722.44,0.44,676948.04,574534.11,636296.48,380589.4,139269.05,415517.84,889884.79]},"St. Tammany Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY"],"policies":[2],"wind_in":[2],"wind_ex":[0],"exposure_in":[454725.0],"exposure_ex":[0.0],"premium_in":[3596.0],"premium_ex":[0.0],"avg_exposure":[227362.5]},"Tangipahoa Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","Cajun Underwriters Reciprocal Exchange (CURE)","Progressive Property Insurance Company","LOUISIANA FARM BUREAU INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","Allied Trust Insurance Company","ALLSTATE INSURANCE COMPANY","Auros Reciprocal Insurance Exchange","Gulf States Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[13393,7460,3886,3345,3068,2496,1347,1255,1170,496,67],"wind_in":[13390,3617,3886,3336,2791,2496,1347,1255,1170,487,67],"wind_ex":[3,28,0,9,277,0,0,0,0,9,0],"exposure_in":[10484251417.0,6873066200.0,2001906713.0,1945049177.0,2280924901.0,1434416580.0,646.0,353954872.0,647593050.0,217537019.0,29130300.0],"exposure_ex":[3784000.0,40773500.0,0.0,4953730.0,229519429.0,0.0,0.0,0.0,0.0,3617311.0,0.0],"premium_in":[37783239.0,23682601.0,9948983.0,10627327.0,12792057.0,6689681.0,2038235.0,4033118.0,3106643.0,1440922.0,355219.0],"premium_ex":[8195.0,56207.0,0.0,8786.0,255947.0,0.0,0.0,0.0,0.0,8775.0,0.0],"avg_exposure":[782815.76,921322.55,515158.7,581479.57,743456.62,574686.13,0.48,282035.75,553498.33,438582.7,434780.6]},"Tensas Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","Progressive Property Insurance Company","ALLSTATE INSURANCE COMPANY","Auros Reciprocal Insurance Exchange","Cajun Underwriters Reciprocal Exchange (CURE)","Louisiana Citizens Property Insurance Corporation","Allied Trust Insurance Company"],"policies":[624,364,103,15,10,8,6,4,3,0],"wind_in":[624,362,46,15,10,8,6,4,3,0],"wind_ex":[0,2,0,0,0,0,0,0,0,0],"exposure_in":[461428789.0,321896317.0,85421500.0,12221250.0,7913650.0,1545004.0,4861800.0,3332633.0,1295500.0,0.0],"exposure_ex":[0.0,1062400.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[1556962.0,1302881.0,206020.0,37564.0,38437.0,11853.0,16630.0,12840.0,5710.0,0.0],"premium_ex":[0.0,1190.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[739469.21,884330.54,829334.95,814750.0,791365.0,193125.5,810300.0,833158.25,431833.33,0.0]},"Terrebonne Parish":{"company":["ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","STATE FARM FIRE AND CASUALTY COMPANY","SureChoice Underwriters Reciprocal Exchange","ALLSTATE INSURANCE COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","Cajun Underwriters Reciprocal Exchange (CURE)","Allied Trust Insurance Company","Progressive Property Insurance Company","Auros Reciprocal Insurance Exchange","Gulf States Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[5766,4613,3816,3536,3028,2395,2261,1242,689,547,243],"wind_in":[2028,4168,3816,3478,822,2395,2261,1209,689,542,243],"wind_ex":[838,445,0,36,2206,0,0,33,0,5,0],"exposure_in":[3739588900.0,3165275697.0,2046483340.0,1142904311.0,668803274.0,1157992082.0,1186.0,752267760.0,362393390.0,225611758.0,124454900.0],"exposure_ex":[1562967000.0,233559205.0,0.0,11932600.0,1773137122.0,0.0,0.0,24486330.0,0.0,1810359.0,0.0],"premium_in":[16446613.0,17216020.0,16007273.0,13339254.0,5512769.0,8409041.0,5992915.0,6201951.0,2757380.0,2795850.0,1834529.0],"premium_ex":[1462418.0,357157.0,0.0,140304.0,1642874.0,0.0,0.0,38380.0,0.0,6546.0,0.0],"avg_exposure":[648558.6,686164.25,536290.18,323219.54,220872.94,483504.0,0.52,605690.63,525970.09,412452.94,512160.08]},"Union Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","ALLSTATE INSURANCE COMPANY","Progressive Property Insurance Company","Cajun Underwriters Reciprocal Exchange (CURE)","Auros Reciprocal Insurance Exchange","Allied Trust Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[2982,2090,553,102,95,57,36,25,4,2],"wind_in":[2982,2082,276,102,95,57,36,25,4,2],"wind_ex":[0,8,3,0,0,0,0,0,0,0],"exposure_in":[1991538072.0,1648543738.0,483467000.0,66452870.0,23512552.0,38896140.0,16426268.0,16650970.0,1.0,969000.0],"exposure_ex":[0.0,4788963.0,1654000.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[6406673.0,5531319.0,1354914.0,244298.0,174074.0,198728.0,69445.0,62232.0,6630.0,9845.0],"premium_ex":[0.0,4685.0,5498.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[667853.14,788776.91,874262.21,651498.73,247500.55,682388.42,456285.22,666038.8,0.25,484500.0]},"Vermilion Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","ALLSTATE INSURANCE COMPANY","Progressive Property Insurance Company","Auros Reciprocal Insurance Exchange","Cajun Underwriters Reciprocal Exchange (CURE)","Allied Trust Insurance Company","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","Gulf States Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[2793,2439,2232,1050,1024,593,530,457,440,119,29],"wind_in":[2606,543,2232,1046,1008,593,530,457,42,116,29],"wind_ex":[187,1896,0,4,16,0,0,0,167,3,0],"exposure_in":[1812193846.0,378282053.0,1296819670.0,307322345.0,627393294.0,331871210.0,266289516.0,215.0,81881400.0,49902265.0,13752100.0],"exposure_ex":[86515165.0,1459853038.0,0.0,1097000.0,10121510.0,0.0,0.0,1.0,278716200.0,1319167.0,0.0],"premium_in":[9223995.0,3568926.0,7966865.0,3087091.0,4453425.0,1857523.0,1878171.0,1111444.0,350809.0,477348.0,217382.0],"premium_ex":[149567.0,1634714.0,0.0,9340.0,18609.0,0.0,0.0,705.0,299729.0,3117.0,0.0],"avg_exposure":[648834.17,155097.19,581012.4,292687.95,612688.76,559647.91,502433.05,0.47,186094.09,419346.76,474210.34]},"Vernon Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","Cajun Underwriters Reciprocal Exchange (CURE)","Auros Reciprocal Insurance Exchange","Progressive Property Insurance Company","Allied Trust Insurance Company","ALLSTATE INSURANCE COMPANY","Gulf States Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[4553,1216,811,160,109,76,62,46,43,4,1],"wind_in":[4553,609,811,160,109,76,62,46,43,4,1],"wind_ex":[0,1,0,0,0,0,0,0,0,0,0],"exposure_in":[2763530947.0,1127736300.0,580353784.0,95373440.0,58869906.0,44515270.0,42609280.0,22.0,9468023.0,1847190.0,423500.0],"exposure_ex":[0.0,2220000.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[9944187.0,2999809.0,2328953.0,397901.0,273678.0,182783.0,252823.0,69139.0,95392.0,10027.0,5082.0],"premium_ex":[0.0,4230.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[606969.24,927414.72,715602.69,596084.0,540090.88,585727.24,687246.45,0.48,220186.58,461797.5,423500.0]},"Washington Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","Cajun Underwriters Reciprocal Exchange (CURE)","SureChoice Underwriters Reciprocal Exchange","ALLSTATE INSURANCE COMPANY","Auros Reciprocal Insurance Exchange","Progressive Property Insurance Company","Gulf States Insurance Company","Allied Trust Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[3970,1785,1101,360,358,229,177,176,132,98,17],"wind_in":[3970,1352,514,360,358,229,177,172,128,97,17],"wind_ex":[0,433,10,0,0,0,0,4,4,1,0],"exposure_in":[2642332251.0,1064836316.0,937448900.0,191225329.0,207328580.0,49061527.0,102826410.0,115822830.0,56352667.0,46.0,6064100.0],"exposure_ex":[0.0,388770387.0,17786000.0,0.0,0.0,0.0,0.0,2375500.0,1824620.0,0.0,0.0],"premium_in":[11091157.0,6413596.0,3759073.0,1004900.0,1060002.0,787754.0,520174.0,738989.0,394051.0,158292.0,92594.0],"premium_ex":[0.0,619136.0,25999.0,0.0,0.0,0.0,0.0,8157.0,5449.0,0.0,0.0],"avg_exposure":[665574.87,596546.96,851452.23,531181.47,579130.11,214242.48,580940.17,658084.26,426914.14,0.47,356711.76]},"Webster Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","ALLSTATE INSURANCE COMPANY","Progressive Property Insurance Company","SureChoice Underwriters Reciprocal Exchange","Cajun Underwriters Reciprocal Exchange (CURE)","Allied Trust Insurance Company","Auros Reciprocal Insurance Exchange","Louisiana Citizens Property Insurance Corporation"],"policies":[6764,1297,884,212,103,73,34,28,14,10],"wind_in":[6764,627,884,212,103,73,34,28,14,10],"wind_ex":[0,2,0,0,0,0,0,0,0,0],"exposure_in":[4320162128.0,1082322100.0,659505013.0,53841317.0,68389800.0,40471730.0,13215205.0,13.0,8068020.0,3775700.0],"exposure_ex":[0.0,1818500.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[13711871.0,3118636.0,2731566.0,441139.0,370561.0,162963.0,74717.0,36232.0,32129.0,36059.0],"premium_ex":[0.0,3413.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[638699.31,834481.19,746046.39,253968.48,663978.64,554407.26,388682.5,0.46,576287.14,377570.0]},"West Baton Rouge Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","Progressive Property Insurance Company","LOUISIANA FARM BUREAU INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","Cajun Underwriters Reciprocal Exchange (CURE)","ALLSTATE INSURANCE COMPANY","Auros Reciprocal Insurance Exchange","Allied Trust Insurance Company","Gulf States Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[3999,1893,988,762,569,513,349,293,159,127,14],"wind_in":[3999,961,985,738,569,513,349,293,159,127,14],"wind_ex":[0,4,3,24,0,0,0,0,0,0,0],"exposure_in":[3045779768.0,1686076800.0,626597410.0,647300769.0,334394940.0,256663413.0,98528788.0,169644000.0,81.0,61390364.0,7892900.0],"exposure_ex":[0.0,6593000.0,1558600.0,22175884.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[10996976.0,5987118.0,3544337.0,3628149.0,1474514.0,1236366.0,1085629.0,750191.0,264547.0,357908.0,63286.0],"premium_ex":[0.0,7092.0,3512.0,23436.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[761635.35,890690.33,634207.9,849476.07,587688.82,500318.54,282317.44,578989.76,0.51,483388.69,563778.57]},"West Carroll Parish":{"company":["LOUISIANA FARM BUREAU INSURANCE COMPANY","STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","ALLSTATE INSURANCE COMPANY","Cajun Underwriters Reciprocal Exchange (CURE)","SureChoice Underwriters Reciprocal Exchange","Progressive Property Insurance Company","Auros Reciprocal Insurance Exchange","Louisiana Citizens Property Insurance Corporation","Allied Trust Insurance Company"],"policies":[1201,1178,223,35,33,27,12,3,2,0],"wind_in":[1201,1178,109,35,33,27,12,3,2,0],"wind_ex":[0,0,0,0,0,0,0,0,0,0],"exposure_in":[806248180.0,661074408.0,190910300.0,7544018.0,13557330.0,17547740.0,8788600.0,1209240.0,533700.0,0.0],"exposure_ex":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[2910051.0,2332397.0,545935.0,68522.0,69363.0,67024.0,39149.0,5446.0,7328.0,0.0],"premium_ex":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[671314.05,561183.71,856100.0,215543.37,410828.18,649916.3,732383.33,403080.0,266850.0,0.0]},"West Feliciana Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","Progressive Property Insurance Company","SureChoice Underwriters Reciprocal Exchange","Auros Reciprocal Insurance Exchange","Cajun Underwriters Reciprocal Exchange (CURE)","ALLSTATE INSURANCE COMPANY","Allied Trust Insurance Company","Gulf States Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[2340,433,249,126,105,53,53,39,17,13,1],"wind_in":[2340,198,244,125,105,53,53,39,17,13,1],"wind_ex":[0,1,5,1,0,0,0,0,0,0,0],"exposure_in":[2154635963.0,393786700.0,228045401.0,96579580.0,87087780.0,43045210.0,33783902.0,12502821.0,9.0,7920430.0,682500.0],"exposure_ex":[0.0,840600.0,4354762.0,681120.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[6191422.0,1479582.0,1257206.0,523835.0,292608.0,141350.0,159678.0,138016.0,28641.0,33940.0,7053.0],"premium_ex":[0.0,993.0,3291.0,825.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[920784.6,909438.11,915844.98,766504.6,829407.43,812173.77,637432.11,320585.15,0.53,609263.85,682500.0]},"Winn Parish":{"company":["STATE FARM FIRE AND CASUALTY COMPANY","LOUISIANA FARM BUREAU INSURANCE COMPANY","ALLSTATE VEHICLE AND PROPERTY INSURANCE COMPANY","SureChoice Underwriters Reciprocal Exchange","ALLSTATE INSURANCE COMPANY","Cajun Underwriters Reciprocal Exchange (CURE)","Progressive Property Insurance Company","Auros Reciprocal Insurance Exchange","Allied Trust Insurance Company","Louisiana Citizens Property Insurance Corporation"],"policies":[1478,875,199,24,17,14,12,11,6,1],"wind_in":[1478,867,96,24,17,14,12,11,6,1],"wind_ex":[0,8,1,0,0,0,0,0,0,0],"exposure_in":[877190913.0,657979565.0,168601300.0,12944110.0,3514009.0,6692860.0,8717437.0,7410020.0,3.0,190500.0],"exposure_ex":[0.0,4914223.0,230000.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"premium_in":[3100167.0,2469174.0,485668.0,47854.0,39876.0,33352.0,43704.0,23154.0,7841.0,2452.0],"premium_ex":[0.0,6290.0,1159.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"avg_exposure":[593498.59,751976.65,847242.71,539337.92,206706.41,478061.43,726453.08,673638.18,0.5,190500.0]}};
+    const parishList = ["Acadia Parish", "Allen Parish", "Ascension Parish", "Assumption Parish", "Avoyelles Parish", "Beauregard Parish", "Bienville Parish", "Bossier Parish", "Caddo Parish", "Calcasieu Parish", "Caldwell Parish", "Cameron Parish", "Catahoula Parish", "Claiborne Parish", "Concordia Parish", "De Soto Parish", "East Baton Rouge Parish", "East Carroll Parish", "East Feliciana Parish", "Evangeline Parish", "Franklin Parish", "Grant Parish", "Iberia Parish", "Iberville Parish", "Jackson Parish", "Jefferson Davis Parish", "Jefferson Parish", "La Salle Parish", "Lafayette Parish", "Lafourche Parish", "Lincoln Parish", "Livingston Parish", "Madison Parish", "Morehouse Parish", "Natchitoches Parish", "Orleans Parish", "Ouachita Parish", "Plaquemines Parish", "Pointe Coupee Parish", "Rapides Parish", "Red River Parish", "Richland Parish", "Sabine Parish", "Saint Bernard Parish", "Saint Charles Parish", "Saint Helena Parish", "Saint James Parish", "Saint John the Baptist Parish", "Saint Landry Parish", "Saint Martin Parish", "Saint Mary Parish", "Saint Tammany Parish", "St. Tammany Parish", "Tangipahoa Parish", "Tensas Parish", "Terrebonne Parish", "Union Parish", "Vermilion Parish", "Vernon Parish", "Washington Parish", "Webster Parish", "West Baton Rouge Parish", "West Carroll Parish", "West Feliciana Parish", "Winn Parish"];
+
+    const parishSelect = document.getElementById("parishSelect");
+
+    parishList.forEach(parish => {
+      const option = document.createElement("option");
+      option.value = parish;
+      option.textContent = parish;
+      parishSelect.appendChild(option);
+    });
+
+    parishSelect.value = "Acadia Parish";
+    parishSelect.addEventListener("change", event => {
+      renderDashboard(event.target.value);
+    });
+
+    function renderDashboard(parish) {
+      const data = parishData[parish];
+      if (!data) return;
+
+      updateKpis(data);
+      renderPoliciesChart(parish, data);
+      renderExposureChart(parish, data);
+      renderWindChart(parish, data);
+      renderPremiumChart(parish, data);
+      renderDetailsTable(parish, data);
+    }
+
+    function updateKpis(data) {
+      const totalPolicies = sumArray(data.policies);
+      const totalExposure = sumArray(data.exposure_in);
+      const totalPremium = sumArray(data.premium_in);
+      const windIncludedPolicies = sumArray(data.wind_in);
+
+      document.getElementById("kpiPolicies").textContent =
+        formatInteger(totalPolicies);
+
+      document.getElementById("kpiExposure").textContent =
+        formatCompactCurrency(totalExposure);
+
+      document.getElementById("kpiPremium").textContent =
+        formatCompactCurrency(totalPremium);
+
+      document.getElementById("kpiWindPolicies").textContent =
+        formatInteger(windIncludedPolicies);
+    }
+
+    function renderPoliciesChart(parish, data) {
+      const companies = [...data.company].reverse();
+      const policies = [...data.policies].reverse();
+
+      Plotly.react(
+        "policiesChart",
+        [{
+          type: "bar",
+          orientation: "h",
+          y: companies,
+          x: policies,
+          text: policies.map(formatInteger),
+          textposition: "outside",
+          cliponaxis: false,
+          hovertemplate:
+            "<b>%{y}</b><br>" +
+            "Total Policies In-Force: %{x:,.0f}<extra></extra>"
+        }],
+        {
+          title: {
+            text: `Top 11 Companies by Total Policies In-Force<br><sup>${parish}</sup>`,
+            x: 0.02,
+            xanchor: "left"
+          },
+          margin: { l: 270, r: 65, t: 75, b: 55 },
+          xaxis: {
+            title: "Total Policies In-Force",
+            tickformat: ",",
+            rangemode: "tozero"
+          },
+          yaxis: { automargin: true },
+          showlegend: false,
+          paper_bgcolor: "#ffffff",
+          plot_bgcolor: "#ffffff"
+        },
+        {
+          responsive: true,
+          displaylogo: false
+        }
+      );
+    }
+
+    function renderExposureChart(parish, data) {
+      const rows = data.company.map((company, index) => ({
+        company,
+        value: data.exposure_in[index]
+      })).sort((a, b) => a.value - b.value);
+
+      Plotly.react(
+        "exposureChart",
+        [{
+          type: "bar",
+          orientation: "h",
+          y: rows.map(row => row.company),
+          x: rows.map(row => row.value),
+          text: rows.map(row => formatCompactCurrency(row.value)),
+          textposition: "outside",
+          cliponaxis: false,
+          hovertemplate:
+            "<b>%{y}</b><br>" +
+            "Exposure with Wind Inclusion: $%{x:,.0f}<extra></extra>"
+        }],
+        {
+          title: {
+            text: `Exposure with Wind Inclusion<br><sup>${parish}</sup>`,
+            x: 0.02,
+            xanchor: "left"
+          },
+          margin: { l: 270, r: 70, t: 75, b: 55 },
+          xaxis: {
+            title: "Exposure",
+            tickprefix: "$",
+            tickformat: ".2s",
+            rangemode: "tozero"
+          },
+          yaxis: { automargin: true },
+          showlegend: false,
+          paper_bgcolor: "#ffffff",
+          plot_bgcolor: "#ffffff"
+        },
+        {
+          responsive: true,
+          displaylogo: false
+        }
+      );
+    }
+
+    function renderWindChart(parish, data) {
+      Plotly.react(
+        "windChart",
+        [
+          {
+            type: "bar",
+            name: "Wind Inclusion",
+            x: data.company,
+            y: data.wind_in,
+            hovertemplate:
+              "<b>%{x}</b><br>" +
+              "Policies with Wind Inclusion: %{y:,.0f}<extra></extra>"
+          },
+          {
+            type: "bar",
+            name: "Wind Exclusion",
+            x: data.company,
+            y: data.wind_ex,
+            hovertemplate:
+              "<b>%{x}</b><br>" +
+              "Policies with Wind Exclusion: %{y:,.0f}<extra></extra>"
+          }
+        ],
+        {
+          title: {
+            text: `Wind-Included vs. Wind-Excluded Policies<br><sup>${parish}</sup>`,
+            x: 0.02,
+            xanchor: "left"
+          },
+          barmode: "group",
+          margin: { l: 70, r: 30, t: 75, b: 190 },
+          xaxis: {
+            tickangle: -45,
+            automargin: true
+          },
+          yaxis: {
+            title: "Number of Policies",
+            tickformat: ",",
+            rangemode: "tozero"
+          },
+          legend: {
+            orientation: "h",
+            y: 1.08,
+            x: 1,
+            xanchor: "right"
+          },
+          paper_bgcolor: "#ffffff",
+          plot_bgcolor: "#ffffff"
+        },
+        {
+          responsive: true,
+          displaylogo: false
+        }
+      );
+    }
+
+    function renderPremiumChart(parish, data) {
+      const rows = data.company.map((company, index) => ({
+        company,
+        value: data.premium_in[index]
+      })).sort((a, b) => a.value - b.value);
+
+      Plotly.react(
+        "premiumChart",
+        [{
+          type: "bar",
+          orientation: "h",
+          y: rows.map(row => row.company),
+          x: rows.map(row => row.value),
+          text: rows.map(row => formatCompactCurrency(row.value)),
+          textposition: "outside",
+          cliponaxis: false,
+          hovertemplate:
+            "<b>%{y}</b><br>" +
+            "Premium with Wind Inclusion: $%{x:,.0f}<extra></extra>"
+        }],
+        {
+          title: {
+            text: `Direct Written Premium with Wind Inclusion<br><sup>${parish}</sup>`,
+            x: 0.02,
+            xanchor: "left"
+          },
+          margin: { l: 270, r: 70, t: 75, b: 55 },
+          xaxis: {
+            title: "Direct Written Premium",
+            tickprefix: "$",
+            tickformat: ".2s",
+            rangemode: "tozero"
+          },
+          yaxis: { automargin: true },
+          showlegend: false,
+          paper_bgcolor: "#ffffff",
+          plot_bgcolor: "#ffffff"
+        },
+        {
+          responsive: true,
+          displaylogo: false
+        }
+      );
+    }
+
+    function renderDetailsTable(parish, data) {
+      document.getElementById("tableTitle").textContent =
+        `Top 11 Company Details — ${parish}`;
+
+      const tbody = document.getElementById("detailsBody");
+      tbody.innerHTML = "";
+
+      data.company.forEach((company, index) => {
+        const row = document.createElement("tr");
+
+        const companyCell = document.createElement("td");
+        companyCell.innerHTML =
+          `<span class="rank">${index + 1}.</span> ${escapeHtml(company)}`;
+        row.appendChild(companyCell);
+
+        appendCell(row, formatInteger(data.policies[index]));
+        appendCell(row, formatInteger(data.wind_in[index]));
+        appendCell(row, formatInteger(data.wind_ex[index]));
+        appendCell(row, formatCurrency(data.exposure_in[index]));
+        appendCell(row, formatCurrency(data.exposure_ex[index]));
+        appendCell(row, formatCurrency(data.premium_in[index]));
+        appendCell(row, formatCurrency(data.premium_ex[index]));
+        appendCell(row, formatCurrency(data.avg_exposure[index]));
+
+        tbody.appendChild(row);
+      });
+    }
+
+    function appendCell(row, value) {
+      const cell = document.createElement("td");
+      cell.textContent = value;
+      row.appendChild(cell);
+    }
+
+    function sumArray(values) {
+      return values.reduce((total, value) => total + Number(value || 0), 0);
+    }
+
+    function formatInteger(value) {
+      return Math.round(Number(value || 0)).toLocaleString("en-US");
+    }
+
+    function formatCurrency(value) {
+      return Number(value || 0).toLocaleString("en-US", {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 0
+      });
+    }
+
+    function formatCompactCurrency(value) {
+      const number = Number(value || 0);
+      const absolute = Math.abs(number);
+
+      if (absolute >= 1e9) return `$${(number / 1e9).toFixed(2)}B`;
+      if (absolute >= 1e6) return `$${(number / 1e6).toFixed(1)}M`;
+      if (absolute >= 1e3) return `$${(number / 1e3).toFixed(1)}K`;
+
+      return `$${number.toFixed(0)}`;
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    renderDashboard(parishSelect.value);
+  </script>
+</body>
+</html>
