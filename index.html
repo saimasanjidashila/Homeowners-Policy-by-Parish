@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homeowners Policy by Parish</title>
+
+  <!-- Internet connection is required to load Plotly from this CDN. -->
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+    :root {
+      --navy: #0b4f71;
+      --navy-dark: #07384f;
+      --background: #f4f7fb;
+      --card: #ffffff;
+      --border: #dce4ed;
+      --text: #172033;
+      --muted: #66758a;
+      --shadow: 0 2px 10px rgba(28, 50, 75, 0.09);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--background);
+      color: var(--text);
+    }
+
+    .header {
+      padding: 24px 30px;
+      color: white;
+      background: linear-gradient(135deg, var(--navy), var(--navy-dark));
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    .header p {
+      margin: 7px 0 0;
+      line-height: 1.45;
+      opacity: 0.92;
+    }
+
+    .controls {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 18px;
+      padding: 20px 30px 12px;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .control-group label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    select {
+      min-width: 290px;
+      padding: 10px 12px;
+      border: 1px solid #b8c4d3;
+      border-radius: 7px;
+      background: white;
+      font-size: 15px;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(190px, 1fr));
+      gap: 14px;
+      padding: 8px 30px 18px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      box-shadow: var(--shadow);
+    }
+
+    .kpi-card {
+      padding: 17px 18px;
+    }
+
+    .kpi-title {
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .kpi-value {
+      color: var(--navy);
+      font-size: 26px;
+      font-weight: 700;
+    }
+
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      padding: 0 30px 18px;
+    }
+
+    .chart-card {
+      min-height: 450px;
+      padding: 8px;
+    }
+
+    .table-card {
+      margin: 0 30px 30px;
+      padding: 16px;
+      overflow-x: auto;
+    }
+
+    .table-card h2 {
+      margin: 0 0 13px;
+      color: var(--navy);
+      font-size: 19px;
+    }
+
+    table {
+      width: 100%;
+      min-width: 1450px;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      padding: 10px 9px;
+      background: var(--navy);
+      color: white;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    thead th:first-child,
+    tbody td:first-child {
+      text-align: left;
+    }
+
+    tbody td {
+      padding: 9px;
+      border-bottom: 1px solid #e5ebf1;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    tbody tr:hover {
+      background: #eaf4f9;
+    }
+
+    .rank {
+      display: inline-block;
+      min-width: 24px;
+      color: var(--navy);
+      font-weight: 700;
+    }
+
+    .footer-note {
+      padding: 0 30px 24px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 1000px) {
+      .kpi-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .chart-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .header,
+      .controls,
+      .kpi-grid,
+      .chart-grid,
+      .footer-note {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .control-group,
+      select {
+        width: 100%;
+        min-width: 100%;
+      }
+
+      .table-card {
+        margin-left: 16px;
+        margin-right: 16px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="header">
+    <h1>Homeowners Policy by Parish</h1>
+    <p>
+      Select a parish to view the top 11 companies ranked by
+      <strong>Total Policies In-Force</strong>.
+    </p>
+  </header>
+
+  <section class="controls">
+    <div class="control-group">
+      <label for="parishSelect">Select parish</label>
+      <select id="parishSelect"></select>
+    </div>
+  </section>
+
+  <section class="kpi-grid">
+    <div class="card kpi-card">
+      <div class="kpi-title">Top 11 Total Policies In-Force</div>
+      <div id="kpiPolicies" class="kpi-value">0</div>
+    </div>
+
+    <div class="card kpi-card">
+      <div class="kpi-title">Exposure with Wind Inclusion</div>
+      <div id="kpiExposure" class="kpi-value">$0</div>
+    </div>
+
+    <div class="card kpi-card">
+      <div class="kpi-title">Premium with Wind Inclusion</div>
+      <div id="kpiPremium" class="kpi-value">$0</div>
+    </div>
+
+    <div class="card kpi-card">
+      <div class="kpi-title">Policies with Wind Inclusion</div>
+      <div id="kpiWindPolicies" class="kpi-value">0</div>
+    </div>
+  </section>
+
+  <section class="chart-grid">
+    <!-- Row 1: Policy comparison -->
+    <div id="policiesChart" class="card chart-card"></div>
+    <div id="windChart" class="card chart-card"></div>
+
+    <!-- Row 2: Exposure comparison -->
+    <div id="exposureChart" class="card chart-card"></div>
+    <div id="exposureExcludedChart" class="card chart-card"></div>
+
+    <!-- Row 3: Premium comparison -->
+    <div id="premiumChart" class="card chart-card"></div>
+    <div id="premiumExcludedChart" class="card chart-card"></div>
+  </section>
+
+  <section class="card table-card">
+    <h2 id="tableTitle">Top 11 Company Details</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Company</th>
+          <th>Total Policies In-Force</th>
+          <th>Policies with Wind Inclusion</th>
+          <th>Policies with Wind Exclusion</th>
+          <th>Exposure with Wind Inclusion</th>
+          <th>Exposure with Wind Exclusion</th>
+          <th>Premium with Wind Inclusion</th>
+          <th>Premium with Wind Exclusion</th>
+          <th>Average Wind-Included Exposure per Policy</th>
+        </tr>
+      </thead>
+      <tbody id="detailsBody"></tbody>
+    </table>
+  </section>
+
+
+
+  <script>
+    "use strict";
+
+    /*
+      MONTHLY DATA UPDATE WORKFLOW
+
+      1. Keep this index.html file in the GitHub repository root.
+      2. Upload the Excel workbook to the same folder.
+      3. Keep the workbook filename exactly as shown below.
+      4. When data changes, replace the old workbook with the new workbook,
+         commit the change, and wait for GitHub Pages to redeploy.
+      5. The browser will read the latest workbook automatically.
+    */
+
+    const EXCEL_FILE = "HO_Top10Company by Parish.xlsx";
+    const PREFERRED_SHEETS = ["ALL", "Sheet0"];
+
+    let parishData = {};
+    let parishList = [];
+
+    const parishSelect = document.getElementById("parishSelect");
+
+    parishSelect.disabled = true;
+    parishSelect.innerHTML = '<option>Loading Excel data...</option>';
+
+    parishSelect.addEventListener("change", event => {
+      renderDashboard(event.target.value);
+    });
+
+    async function loadExcelData() {
+      try {
+        // The timestamp prevents the browser from using an older cached workbook.
+        const workbookUrl = `${encodeURI(EXCEL_FILE)}?v=${Date.now()}`;
+
+        const response = await fetch(workbookUrl, {
+          cache: "no-store"
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            `Could not load ${EXCEL_FILE}. HTTP status: ${response.status}`
+          );
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer, { type: "array" });
+        const sheetName = chooseWorksheet(workbook.SheetNames);
+
+        if (!sheetName) {
+          throw new Error("The Excel workbook does not contain a worksheet.");
+        }
+
+        const worksheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(worksheet, {
+          defval: 0,
+          raw: true
+        });
+
+        if (!rows.length) {
+          throw new Error(`Worksheet ${sheetName} contains no data.`);
+        }
+
+        validateRequiredColumns(rows[0]);
+
+        parishData = buildParishData(rows);
+        parishList = Object.keys(parishData).sort((a, b) =>
+          a.localeCompare(b)
+        );
+
+        if (!parishList.length) {
+          throw new Error("No valid parish-company records were found.");
+        }
+
+        populateParishDropdown();
+        parishSelect.disabled = false;
+        parishSelect.value = parishList[0];
+        renderDashboard(parishList[0]);
+      } catch (error) {
+        console.error(error);
+        parishSelect.disabled = true;
+        parishSelect.innerHTML = '<option>Data could not be loaded</option>';
+
+        alert(
+          `${error.message}\n\n` +
+          `Confirm that ${EXCEL_FILE} is in the same GitHub folder as index.html, ` +
+          `and that the workbook column names have not changed.`
+        );
+      }
+    }
+
+    function chooseWorksheet(sheetNames) {
+      for (const preferredName of PREFERRED_SHEETS) {
+        if (sheetNames.includes(preferredName)) {
+          return preferredName;
+        }
+      }
+
+      return sheetNames.length ? sheetNames[0] : null;
+    }
+
+    function validateRequiredColumns(firstRow) {
+      const requiredColumns = [
+        "Parish",
+        "Company Name",
+        "Total Policies In-Force",
+        "Total Policies with Wind Inclusion",
+        "Total Policies with Wind Exclusion",
+        "Total Exposures with Wind Inclusion",
+        "Total Exposures with Wind Exclusion",
+        "Total Direct Written Premium with Wind Inclusion",
+        "Total Direct Written Premium with Wind Exclusion"
+      ];
+
+      const missingColumns = requiredColumns.filter(
+        columnName => !(columnName in firstRow)
+      );
+
+      if (missingColumns.length) {
+        throw new Error(
+          "Missing required Excel columns: " + missingColumns.join(", ")
+        );
+      }
+    }
+
+    function buildParishData(rows) {
+      const grouped = new Map();
+
+      rows.forEach(row => {
+        const parish = cleanText(row["Parish"]);
+        const company = cleanText(row["Company Name"]);
+
+        if (!parish || !company) return;
+
+        if (!grouped.has(parish)) {
+          grouped.set(parish, new Map());
+        }
+
+        const companyMap = grouped.get(parish);
+
+        if (!companyMap.has(company)) {
+          companyMap.set(company, {
+            company,
+            policies: 0,
+            wind_in: 0,
+            wind_ex: 0,
+            exposure_in: 0,
+            exposure_ex: 0,
+            premium_in: 0,
+            premium_ex: 0
+          });
+        }
+
+        const item = companyMap.get(company);
+
+        item.policies += toNumber(row["Total Policies In-Force"]);
+        item.wind_in += toNumber(row["Total Policies with Wind Inclusion"]);
+        item.wind_ex += toNumber(row["Total Policies with Wind Exclusion"]);
+        item.exposure_in += toNumber(row["Total Exposures with Wind Inclusion"]);
+        item.exposure_ex += toNumber(row["Total Exposures with Wind Exclusion"]);
+        item.premium_in += toNumber(
+          row["Total Direct Written Premium with Wind Inclusion"]
+        );
+        item.premium_ex += toNumber(
+          row["Total Direct Written Premium with Wind Exclusion"]
+        );
+      });
+
+      const output = {};
+
+      for (const [parish, companyMap] of grouped.entries()) {
+        const topCompanies = Array.from(companyMap.values())
+          .map(item => ({
+            ...item,
+            avg_exposure:
+              item.policies > 0
+                ? item.exposure_in / item.policies
+                : 0
+          }))
+          .sort((a, b) => b.policies - a.policies)
+          .slice(0, 11);
+
+        output[parish] = {
+          company: topCompanies.map(item => item.company),
+          policies: topCompanies.map(item => item.policies),
+          wind_in: topCompanies.map(item => item.wind_in),
+          wind_ex: topCompanies.map(item => item.wind_ex),
+          exposure_in: topCompanies.map(item => item.exposure_in),
+          exposure_ex: topCompanies.map(item => item.exposure_ex),
+          premium_in: topCompanies.map(item => item.premium_in),
+          premium_ex: topCompanies.map(item => item.premium_ex),
+          avg_exposure: topCompanies.map(item => item.avg_exposure)
+        };
+      }
+
+      return output;
+    }
+
+    function populateParishDropdown() {
+      parishSelect.innerHTML = "";
+
+      parishList.forEach(parish => {
+        const option = document.createElement("option");
+        option.value = parish;
+        option.textContent = parish;
+        parishSelect.appendChild(option);
+      });
+    }
+
+    function cleanText(value) {
+      return String(value ?? "").trim();
+    }
+
+    function toNumber(value) {
+      if (typeof value === "number") {
+        return Number.isFinite(value) ? value : 0;
+      }
+
+      const cleaned = String(value ?? "")
+        .replace(/[$,%\s,]/g, "")
+        .trim();
+
+      const number = Number(cleaned);
+      return Number.isFinite(number) ? number : 0;
+    }
+
+    function renderDashboard(parish) {
+      const data = parishData[parish];
+      if (!data) return;
+
+      updateKpis(data);
+      renderPoliciesChart(parish, data);
+      renderExposureChart(parish, data);
+      renderExposureExcludedChart(parish, data);
+      renderWindChart(parish, data);
+      renderPremiumChart(parish, data);
+      renderPremiumExcludedChart(parish, data);
+      renderDetailsTable(parish, data);
+    }
+
+    function updateKpis(data) {
+      const totalPolicies = sumArray(data.policies);
+      const totalExposure = sumArray(data.exposure_in);
+      const totalPremium = sumArray(data.premium_in);
+      const windIncludedPolicies = sumArray(data.wind_in);
+
+      document.getElementById("kpiPolicies").textContent =
+        formatInteger(totalPolicies);
+
+      document.getElementById("kpiExposure").textContent =
+        formatCompactCurrency(totalExposure);
+
+      document.getElementById("kpiPremium").textContent =
+        formatCompactCurrency(totalPremium);
+
+      document.getElementById("kpiWindPolicies").textContent =
+        formatInteger(windIncludedPolicies);
+    }
+
+    function renderPoliciesChart(parish, data) {
+      const companies = [...data.company].reverse();
+      const policies = [...data.policies].reverse();
+
+      Plotly.react(
+        "policiesChart",
+        [{
+          type: "bar",
+          orientation: "h",
+          y: companies,
+          x: policies,
+          text: policies.map(formatInteger),
+          textposition: "outside",
+          cliponaxis: false,
+          hovertemplate:
+            "<b>%{y}</b><br>" +
+            "Total Policies In-Force: %{x:,.0f}<extra></extra>"
+        }],
+        {
+          title: {
+            text: `Top 11 Companies by Total Policies In-Force<br><sup>${parish}</sup>`,
+            x: 0.02,
+            xanchor: "left"
+          },
+          margin: { l: 270, r: 65, t: 75, b: 55 },
+          xaxis: {
+            title: "Total Policies In-Force",
+            tickformat: ",",
+            rangemode: "tozero"
+          },
+          yaxis: { automargin: true },
+          showlegend: false,
+          paper_bgcolor: "#ffffff",
+          plot_bgcolor: "#ffffff"
+        },
+        {
+          responsive: true,
+          displaylogo: false
+        }
+      );
+    }
+
+    function renderExposureChart(parish, data) {
+      const rows = data.company.map((company, index) => ({
+        company,
+        value: data.exposure_in[index]
+      })).sort((a, b) => a.value - b.value);
+
+      Plotly.react(
+        "exposureChart",
+        [{
+          type: "bar",
+          orientation: "h",
+          y: rows.map(row => row.company),
+          x: rows.map(row => row.value),
+          text: rows.map(row => formatCompactCurrency(row.value)),
+          textposition: "outside",
+          cliponaxis: false,
+          hovertemplate:
+            "<b>%{y}</b><br>" +
+            "Exposure with Wind Inclusion: $%{x:,.0f}<extra></extra>"
+        }],
+        {
+          title: {
+            text: `Exposure with Wind Inclusion<br><sup>${parish}</sup>`,
+            x: 0.02,
+            xanchor: "left"
+          },
+          margin: { l: 270, r: 70, t: 75, b: 55 },
+          xaxis: {
+            title: "Exposure",
+            tickprefix: "$",
+            tickformat: ".2s",
+            rangemode: "tozero"
+          },
+          yaxis: { automargin: true },
+          showlegend: false,
+          paper_bgcolor: "#ffffff",
+          plot_bgcolor: "#ffffff"
+        },
+        {
+          responsive: true,
+          displaylogo: false
+        }
+      );
+    }
+
+
+    function renderExposureExcludedChart(parish, data) {
+      const rows = data.company.map((company, index) => ({
+        company,
+        value: data.exposure_ex[index]
+      })).sort((a, b) => a.value - b.value);
+
+      Plotly.react(
+        "exposureExcludedChart",
+        [{
+          type: "bar",
+          orientation: "h",
+          y: rows.map(row => row.company),
+          x: rows.map(row => row.value),
+          text: rows.map(row => formatCompactCurrency(row.value)),
+          textposition: "outside",
+          cliponaxis: false,
+          hovertemplate:
+            "<b>%{y}</b><br>" +
+            "Exposure with Wind Exclusion: $%{x:,.0f}<extra></extra>"
+        }],
+        {
+          title: {
+            text: `Exposure with Wind Exclusion<br><sup>${parish}</sup>`,
+            x: 0.02,
+            xanchor: "left"
+          },
+          margin: { l: 270, r: 70, t: 75, b: 55 },
+          xaxis: {
+            title: "Exposure",
+            tickprefix: "$",
+            tickformat: ".2s",
+            rangemode: "tozero"
+          },
+          yaxis: { automargin: true },
+          showlegend: false,
+          paper_bgcolor: "#ffffff",
+          plot_bgcolor: "#ffffff"
+        },
+        {
+          responsive: true,
+          displaylogo: false
+        }
+      );
+    }
+
+    function renderWindChart(parish, data) {
+      Plotly.react(
+        "windChart",
+        [
+          {
+            type: "bar",
+            name: "Wind Inclusion",
+            x: data.company,
+            y: data.wind_in,
+            hovertemplate:
+              "<b>%{x}</b><br>" +
+              "Policies with Wind Inclusion: %{y:,.0f}<extra></extra>"
+          },
+          {
+            type: "bar",
+            name: "Wind Exclusion",
+            x: data.company,
+            y: data.wind_ex,
+            hovertemplate:
+              "<b>%{x}</b><br>" +
+              "Policies with Wind Exclusion: %{y:,.0f}<extra></extra>"
+          }
+        ],
+        {
+          title: {
+            text: `Total PIF Wind-Included vs. Wind-Excluded <br><sup>${parish}</sup>`,
+            x: 0.02,
+            xanchor: "left"
+          },
+          barmode: "group",
+          margin: { l: 70, r: 30, t: 75, b: 190 },
+          xaxis: {
+            tickangle: -45,
+            automargin: true
+          },
+          yaxis: {
+            title: "Number of Policies",
+            tickformat: ",",
+            rangemode: "tozero"
+          },
+          legend: {
+            orientation: "h",
+            y: 1.08,
+            x: 1,
+            xanchor: "right"
+          },
+          paper_bgcolor: "#ffffff",
+          plot_bgcolor: "#ffffff"
+        },
+        {
+          responsive: true,
+          displaylogo: false
+        }
+      );
+    }
+
+    function renderPremiumChart(parish, data) {
+      const rows = data.company.map((company, index) => ({
+        company,
+        value: data.premium_in[index]
+      })).sort((a, b) => a.value - b.value);
+
+      Plotly.react(
+        "premiumChart",
+        [{
+          type: "bar",
+          orientation: "h",
+          y: rows.map(row => row.company),
+          x: rows.map(row => row.value),
+          text: rows.map(row => formatCompactCurrency(row.value)),
+          textposition: "outside",
+          cliponaxis: false,
+          hovertemplate:
+            "<b>%{y}</b><br>" +
+            "Premium with Wind Inclusion: $%{x:,.0f}<extra></extra>"
+        }],
+        {
+          title: {
+            text: `Direct Written Premium with Wind Inclusion<br><sup>${parish}</sup>`,
+            x: 0.02,
+            xanchor: "left"
+          },
+          margin: { l: 270, r: 70, t: 75, b: 55 },
+          xaxis: {
+            title: "Direct Written Premium",
+            tickprefix: "$",
+            tickformat: ".2s",
+            rangemode: "tozero"
+          },
+          yaxis: { automargin: true },
+          showlegend: false,
+          paper_bgcolor: "#ffffff",
+          plot_bgcolor: "#ffffff"
+        },
+        {
+          responsive: true,
+          displaylogo: false
+        }
+      );
+    }
+
+
+    function renderPremiumExcludedChart(parish, data) {
+      const rows = data.company.map((company, index) => ({
+        company,
+        value: data.premium_ex[index]
+      })).sort((a, b) => a.value - b.value);
+
+      Plotly.react(
+        "premiumExcludedChart",
+        [{
+          type: "bar",
+          orientation: "h",
+          y: rows.map(row => row.company),
+          x: rows.map(row => row.value),
+          text: rows.map(row => formatCompactCurrency(row.value)),
+          textposition: "outside",
+          cliponaxis: false,
+          hovertemplate:
+            "<b>%{y}</b><br>" +
+            "Premium with Wind Exclusion: $%{x:,.0f}<extra></extra>"
+        }],
+        {
+          title: {
+            text: `Direct Written Premium with Wind Exclusion<br><sup>${parish}</sup>`,
+            x: 0.02,
+            xanchor: "left"
+          },
+          margin: { l: 270, r: 70, t: 75, b: 55 },
+          xaxis: {
+            title: "Direct Written Premium",
+            tickprefix: "$",
+            tickformat: ".2s",
+            rangemode: "tozero"
+          },
+          yaxis: { automargin: true },
+          showlegend: false,
+          paper_bgcolor: "#ffffff",
+          plot_bgcolor: "#ffffff"
+        },
+        {
+          responsive: true,
+          displaylogo: false
+        }
+      );
+    }
+
+    function renderDetailsTable(parish, data) {
+      document.getElementById("tableTitle").textContent =
+        `Top 11 Company Details — ${parish}`;
+
+      const tbody = document.getElementById("detailsBody");
+      tbody.innerHTML = "";
+
+      data.company.forEach((company, index) => {
+        const row = document.createElement("tr");
+
+        const companyCell = document.createElement("td");
+        companyCell.innerHTML =
+          `<span class="rank">${index + 1}.</span> ${escapeHtml(company)}`;
+        row.appendChild(companyCell);
+
+        appendCell(row, formatInteger(data.policies[index]));
+        appendCell(row, formatInteger(data.wind_in[index]));
+        appendCell(row, formatInteger(data.wind_ex[index]));
+        appendCell(row, formatCurrency(data.exposure_in[index]));
+        appendCell(row, formatCurrency(data.exposure_ex[index]));
+        appendCell(row, formatCurrency(data.premium_in[index]));
+        appendCell(row, formatCurrency(data.premium_ex[index]));
+        appendCell(row, formatCurrency(data.avg_exposure[index]));
+
+        tbody.appendChild(row);
+      });
+    }
+
+    function appendCell(row, value) {
+      const cell = document.createElement("td");
+      cell.textContent = value;
+      row.appendChild(cell);
+    }
+
+    function sumArray(values) {
+      return values.reduce((total, value) => total + Number(value || 0), 0);
+    }
+
+    function formatInteger(value) {
+      return Math.round(Number(value || 0)).toLocaleString("en-US");
+    }
+
+    function formatCurrency(value) {
+      return Number(value || 0).toLocaleString("en-US", {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 0
+      });
+    }
+
+    function formatCompactCurrency(value) {
+      const number = Number(value || 0);
+      const absolute = Math.abs(number);
+
+      if (absolute >= 1e9) return `$${(number / 1e9).toFixed(2)}B`;
+      if (absolute >= 1e6) return `$${(number / 1e6).toFixed(1)}M`;
+      if (absolute >= 1e3) return `$${(number / 1e3).toFixed(1)}K`;
+
+      return `$${number.toFixed(0)}`;
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    loadExcelData();
+  </script>
+</body>
+</html>
